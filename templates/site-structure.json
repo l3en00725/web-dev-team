@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_comment": "Template for site-structure.json - defines all pages, routes, and relationships",
+  
+  "meta": {
+    "projectName": "",
+    "createdAt": "",
+    "updatedAt": "",
+    "version": "1.0.0",
+    "owner": "Architect Agent"
+  },
+  
+  "siteInfo": {
+    "domain": "",
+    "siteName": "",
+    "tagline": "",
+    "defaultLanguage": "en",
+    "timezone": "America/Chicago"
+  },
+  
+  "pages": {
+    "static": [
+      {
+        "id": "home",
+        "name": "Homepage",
+        "slug": "/",
+        "template": "home",
+        "priority": 1.0,
+        "seo": {
+          "titlePattern": "{siteName} | {tagline}",
+          "schemaTypes": ["Organization", "WebSite"]
+        }
+      },
+      {
+        "id": "about",
+        "name": "About",
+        "slug": "/about/",
+        "template": "about",
+        "priority": 0.8,
+        "seo": {
+          "titlePattern": "About Us | {siteName}",
+          "schemaTypes": ["Organization", "BreadcrumbList"]
+        }
+      },
+      {
+        "id": "contact",
+        "name": "Contact",
+        "slug": "/contact/",
+        "template": "contact",
+        "priority": 0.8,
+        "seo": {
+          "titlePattern": "Contact Us | {siteName}",
+          "schemaTypes": ["LocalBusiness", "BreadcrumbList"]
+        }
+      },
+      {
+        "id": "privacy",
+        "name": "Privacy Policy",
+        "slug": "/privacy/",
+        "template": "legal",
+        "priority": 0.3,
+        "noindex": false,
+        "seo": {
+          "titlePattern": "Privacy Policy | {siteName}",
+          "schemaTypes": ["BreadcrumbList"]
+        }
+      },
+      {
+        "id": "terms",
+        "name": "Terms of Service",
+        "slug": "/terms/",
+        "template": "legal",
+        "priority": 0.3,
+        "noindex": false,
+        "seo": {
+          "titlePattern": "Terms of Service | {siteName}",
+          "schemaTypes": ["BreadcrumbList"]
+        }
+      }
+    ],
+    
+    "dynamic": {
+      "services": {
+        "enabled": true,
+        "basePath": "/services/",
+        "template": "service",
+        "priority": 0.9,
+        "seo": {
+          "titlePattern": "{serviceName} | {siteName}",
+          "schemaTypes": ["Service", "BreadcrumbList", "FAQPage"]
+        },
+        "items": [
+          {
+            "id": "service-1",
+            "name": "Service Name",
+            "slug": "service-slug"
+          }
+        ]
+      },
+      
+      "locations": {
+        "enabled": false,
+        "basePath": "/",
+        "slugPattern": "{service}/{city}-{state}/",
+        "template": "location",
+        "priority": 0.7,
+        "seo": {
+          "titlePattern": "{serviceName} in {city}, {state} | {siteName}",
+          "schemaTypes": ["LocalBusiness", "Service", "BreadcrumbList", "FAQPage"]
+        },
+        "items": []
+      },
+      
+      "blog": {
+        "enabled": true,
+        "basePath": "/blog/",
+        "template": "blog-post",
+        "indexTemplate": "blog-index",
+        "priority": 0.6,
+        "seo": {
+          "titlePattern": "{postTitle} | {siteName} Blog",
+          "schemaTypes": ["Article", "BreadcrumbList", "Person"]
+        },
+        "pagination": {
+          "enabled": true,
+          "perPage": 12
+        },
+        "categories": [],
+        "items": []
+      }
+    }
+  },
+  
+  "navigation": {
+    "header": [
+      { "label": "Home", "href": "/" },
+      { "label": "Services", "href": "/services/", "children": [] },
+      { "label": "About", "href": "/about/" },
+      { "label": "Blog", "href": "/blog/" },
+      { "label": "Contact", "href": "/contact/" }
+    ],
+    "footer": {
+      "columns": [
+        {
+          "title": "Services",
+          "links": []
+        },
+        {
+          "title": "Company",
+          "links": [
+            { "label": "About", "href": "/about/" },
+            { "label": "Contact", "href": "/contact/" }
+          ]
+        },
+        {
+          "title": "Legal",
+          "links": [
+            { "label": "Privacy Policy", "href": "/privacy/" },
+            { "label": "Terms of Service", "href": "/terms/" }
+          ]
+        }
+      ]
+    }
+  },
+  
+  "internalLinking": {
+    "rules": [
+      {
+        "from": "blog-post",
+        "to": "service",
+        "condition": "related-topic",
+        "maxLinks": 3
+      },
+      {
+        "from": "location",
+        "to": "location",
+        "condition": "nearby-city",
+        "maxLinks": 5
+      }
+    ]
+  },
+  
+  "specialPages": {
+    "404": {
+      "template": "404",
+      "redirectSuggestions": true
+    },
+    "sitemap": {
+      "path": "/sitemap.xml",
+      "includeImages": true,
+      "changefreq": {
+        "home": "weekly",
+        "services": "monthly",
+        "blog": "weekly",
+        "locations": "monthly"
+      }
+    },
+    "robots": {
+      "path": "/robots.txt",
+      "disallow": ["/admin/", "/api/"],
+      "sitemap": true
+    }
+  }
+}

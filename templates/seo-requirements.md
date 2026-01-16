@@ -1,0 +1,392 @@
+# SEO Requirements
+
+## Project: [PROJECT_NAME]
+## Last Updated: [DATE]
+## Owner: Architect Agent
+
+---
+
+## Overview
+
+This document defines SEO requirements for all page types. Builder Agent implements these mechanically. Content Agent provides the copy that fills these requirements.
+
+---
+
+## Global Requirements
+
+### Every Page Must Have
+
+- [ ] Unique meta title (max 60 chars)
+- [ ] Unique meta description (max 160 chars)
+- [ ] Exactly one H1 tag
+- [ ] Proper heading hierarchy (H1 → H2 → H3, no skipping)
+- [ ] Canonical URL
+- [ ] Open Graph tags (title, description, image)
+- [ ] Twitter Card tags
+- [ ] At least one schema type
+- [ ] BreadcrumbList schema
+
+### Image Requirements
+
+- [ ] All images have alt text
+- [ ] Alt text is descriptive (not "image" or filename)
+- [ ] Alt text includes keywords where natural
+- [ ] Images are optimized (WebP, under thresholds)
+- [ ] Images have width and height attributes
+
+### Link Requirements
+
+- [ ] All internal links work (no 404s)
+- [ ] External links have rel="noopener" (if target="_blank")
+- [ ] Important links are not JavaScript-only
+- [ ] Anchor text is descriptive
+
+---
+
+## Page-Specific Requirements
+
+### Homepage
+
+**Meta Title Pattern:**
+```
+{Site Name} | {Tagline/Primary Keyword}
+```
+
+**Meta Description Pattern:**
+```
+{Value proposition}. {Key benefit}. {CTA or differentiator}.
+```
+
+**Schema Types:**
+- Organization
+- WebSite
+- (LocalBusiness if applicable)
+
+**H1:** Site name or primary value proposition
+
+**Content Requirements:**
+- Clear value proposition above fold
+- Primary services/offerings highlighted
+- Trust signals (testimonials, logos)
+- Clear CTAs
+
+---
+
+### Service Pages
+
+**Meta Title Pattern:**
+```
+{Service Name} Services | {Site Name}
+```
+or
+```
+{Service Name} in {Location} | {Site Name}
+```
+
+**Meta Description Pattern:**
+```
+{Service description}. {Key benefit}. {CTA}. {Differentiator}.
+```
+
+**Schema Types:**
+- Service
+- BreadcrumbList
+- FAQPage (if FAQs present)
+
+**H1:** Include service name and location (if local)
+
+**Content Requirements:**
+- Service description (what it is)
+- Benefits (why choose this)
+- Process (how it works)
+- FAQs (min 3)
+- CTA
+
+**Heading Structure:**
+```
+H1: {Service} in {Location}
+  H2: What is {Service}?
+  H2: Benefits of {Service}
+  H2: Our {Service} Process
+    H3: Step 1
+    H3: Step 2
+  H2: Frequently Asked Questions
+    H3: Question 1?
+    H3: Question 2?
+  H2: Get Started Today
+```
+
+---
+
+### Location Pages
+
+**Meta Title Pattern:**
+```
+{Service} in {City}, {State} | {Site Name}
+```
+
+**Meta Description Pattern:**
+```
+Professional {service} in {city}, {state}. {Key benefit}. {Local differentiator}. Call {phone} for {CTA}.
+```
+
+**Schema Types:**
+- LocalBusiness
+- Service
+- BreadcrumbList
+- FAQPage
+
+**H1:** Must include city and state
+
+**Content Requirements:**
+- Location-specific intro
+- Services offered in this location
+- Service area coverage
+- Local testimonials (if available)
+- Location-specific FAQs
+- Contact information
+- Links to nearby locations
+
+**Internal Linking:**
+- Link to 3-5 nearby location pages
+- Link to main service page
+- Link from service page back to location
+
+---
+
+### Blog Posts
+
+**Meta Title Pattern:**
+```
+{Post Title} | {Site Name} Blog
+```
+
+**Meta Description Pattern:**
+```
+{Summary of post}. {What reader will learn}. {Read time or CTA}.
+```
+
+**Schema Types:**
+- Article (or BlogPosting)
+- BreadcrumbList
+- Person (author)
+- FAQPage (if FAQs present)
+
+**H1:** Post title (include primary keyword)
+
+**Content Requirements:**
+- Primary keyword in first 100 words
+- AI-friendly structure (question → answer → depth)
+- Short paragraphs (2-3 sentences)
+- Subheadings every 200-300 words
+- Internal links to related content
+- Author attribution
+
+**Heading Structure:**
+```
+H1: {Post Title with Keyword}
+  H2: {Section answering main question}
+  H2: {Supporting section}
+    H3: {Subsection}
+    H3: {Subsection}
+  H2: {Additional context}
+  H2: Frequently Asked Questions (optional)
+    H3: Question?
+  H2: Conclusion/Next Steps
+```
+
+---
+
+### About Page
+
+**Meta Title Pattern:**
+```
+About Us | {Site Name}
+```
+
+**Meta Description Pattern:**
+```
+Learn about {site name}. {Mission/story}. {Differentiator}. {Trust signal}.
+```
+
+**Schema Types:**
+- Organization
+- BreadcrumbList
+
+**Content Requirements:**
+- Company story/mission
+- Team information (E-E-A-T)
+- Credentials/certifications
+- Trust signals
+
+---
+
+### Contact Page
+
+**Meta Title Pattern:**
+```
+Contact Us | {Site Name}
+```
+
+**Meta Description Pattern:**
+```
+Contact {site name} for {service}. {Contact methods}. {Response time or CTA}.
+```
+
+**Schema Types:**
+- LocalBusiness (with contact info)
+- BreadcrumbList
+
+**Content Requirements:**
+- Contact form
+- Phone number
+- Email address
+- Physical address (if applicable)
+- Hours of operation
+- Map (if local business)
+
+---
+
+## Schema Markup Reference
+
+### Organization
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "{Site Name}",
+  "url": "{Site URL}",
+  "logo": "{Logo URL}",
+  "description": "{Site Description}",
+  "sameAs": [
+    "{LinkedIn URL}",
+    "{Facebook URL}"
+  ]
+}
+```
+
+### LocalBusiness
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "{Business Name}",
+  "description": "{Description}",
+  "url": "{URL}",
+  "telephone": "{Phone}",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "{Street}",
+    "addressLocality": "{City}",
+    "addressRegion": "{State}",
+    "postalCode": "{ZIP}",
+    "addressCountry": "US"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": "{Lat}",
+    "longitude": "{Lng}"
+  },
+  "openingHours": ["Mo-Fr 08:00-17:00"]
+}
+```
+
+### Article
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{Title}",
+  "description": "{Description}",
+  "image": "{Image URL}",
+  "datePublished": "{ISO Date}",
+  "dateModified": "{ISO Date}",
+  "author": {
+    "@type": "Person",
+    "name": "{Author Name}",
+    "url": "{Author URL}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "{Site Name}",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{Logo URL}"
+    }
+  }
+}
+```
+
+### FAQPage
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "{Question}",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "{Answer}"
+      }
+    }
+  ]
+}
+```
+
+### BreadcrumbList
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "{Home URL}"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "{Page Name}",
+      "item": "{Page URL}"
+    }
+  ]
+}
+```
+
+---
+
+## Technical SEO Checklist
+
+### Crawlability
+- [ ] sitemap.xml exists and is valid
+- [ ] robots.txt configured correctly
+- [ ] No accidental noindex tags
+- [ ] No orphan pages
+- [ ] XML sitemap submitted to Search Console
+
+### Performance
+- [ ] PageSpeed 95+ mobile
+- [ ] PageSpeed 95+ desktop
+- [ ] Core Web Vitals passing
+- [ ] Images lazy loaded
+- [ ] CSS/JS optimized
+
+### Mobile
+- [ ] Mobile-friendly design
+- [ ] No horizontal scroll
+- [ ] Touch targets adequate size
+- [ ] Text readable without zoom
+
+### Security
+- [ ] HTTPS enabled
+- [ ] No mixed content
+- [ ] Security headers configured

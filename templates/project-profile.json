@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_comment": "Template for project-profile.json - fill in all fields during Site Kickoff",
+  
+  "projectName": "",
+  "clientName": "",
+  "domain": "",
+  "isRebuild": false,
+  
+  "siteType": {
+    "_options": ["marketing-brand", "local-seo-service", "content-blog", "saas-app-frontend", "ecommerce", "vacation-rental"],
+    "selected": ""
+  },
+  
+  "primaryGoal": {
+    "_options": ["lead-generation", "organic-seo-traffic", "brand-authority", "conversion-booking", "content-distribution"],
+    "selected": ""
+  },
+  
+  "distributionStrategy": {
+    "_options": ["local-seo", "multi-state-national", "global-worldwide", "saas-app-first", "hybrid"],
+    "selected": "",
+    "details": {
+      "localSeo": {
+        "targetCities": [],
+        "slugPattern": "",
+        "internalLinkingRules": ""
+      },
+      "multiState": {
+        "targetStates": [],
+        "hierarchicalStructure": "",
+        "canonicalRules": ""
+      },
+      "global": {
+        "countryTargets": [],
+        "languageTargets": [],
+        "i18nStrategy": ""
+      },
+      "saas": {
+        "featurePages": [],
+        "useCasePages": [],
+        "personaPages": []
+      },
+      "hybrid": {
+        "precedenceRules": "",
+        "seoPriorityOrder": []
+      }
+    }
+  },
+  
+  "contentStrategy": {
+    "pillarTopics": [],
+    "targetKeywordThemes": [],
+    "contentTypes": []
+  },
+  
+  "appLinkage": {
+    "hasApp": false,
+    "appUrl": "",
+    "signUpUrl": "",
+    "signInUrl": "",
+    "sharedSupabase": false,
+    "supabaseProjectId": ""
+  },
+  
+  "integrations": {
+    "analytics": {
+      "_options": ["ga4", "plausible"],
+      "selected": ""
+    },
+    "forms": {
+      "webhookEndpoints": [],
+      "crmConnection": "",
+      "emailNotifications": true
+    },
+    "cms": {
+      "_options": ["file-based", "astro-content-collections", "supabase", "external-api"],
+      "selected": ""
+    },
+    "industrySpecific": [],
+    "bingPlaces": false
+  },
+  
+  "llmAssignments": {
+    "architect": "Claude Opus",
+    "builder": "Cursor Auto",
+    "design": "Gemini",
+    "content": "Claude",
+    "admin": "Claude",
+    "confirmed": false
+  },
+  
+  "repoGraduation": {
+    "confirmed": false,
+    "newRepoName": "",
+    "newRepoUrl": "",
+    "vercelProjectLinked": false
+  },
+  
+  "metadata": {
+    "createdAt": "",
+    "updatedAt": "",
+    "version": "1.0.0",
+    "status": "kickoff"
+  }
+}
