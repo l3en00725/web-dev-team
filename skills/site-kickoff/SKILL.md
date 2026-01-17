@@ -158,7 +158,7 @@ Gather logo assets for the project:
 **Logo Availability:**
 - Does user have logo files? (Yes/No)
 - Is SVG available? (Yes/No)
-  - If no SVG: Convert PNG via [Vectorizer.ai](https://vectorizer.ai)
+  - If no SVG: Convert PNG via SVGcode (https://svgco.de) — free, runs in browser
 
 **Required Logo Variants:**
 - [ ] Full logo (horizontal/primary)
@@ -288,7 +288,7 @@ Site Kickoff is complete when:
 - [ ] Repo graduation is acknowledged
 - [ ] App linkage is determined
 - [ ] Required integrations are identified
-- [ ] Logo files collected (SVG preferred, PNG converted via Vectorizer.ai)
+- [ ] Logo files collected (SVG preferred, PNG converted via SVGcode)
 - [ ] LLM assignments are confirmed
 - [ ] `project-profile.json` is generated
 - [ ] `constraints.md` is generated

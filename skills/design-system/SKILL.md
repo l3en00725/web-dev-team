@@ -383,7 +383,7 @@ html {
 
 **Logo Requirements:**
 - SVG format preferred for scalability
-- If only PNG exists: convert via [Vectorizer.ai](https://vectorizer.ai)
+- If only PNG exists: convert via SVGcode (https://svgco.de) — free, runs in browser
 
 **Required Variants:**
 
@@ -399,7 +399,7 @@ html {
 1. User uploads logo files
 2. Check if SVG is available
    - If yes: proceed with SVG
-   - If no: convert PNG via Vectorizer.ai
+   - If no: convert PNG via SVGcode (https://svgco.de) — free, runs in browser
 3. Collect all four variants
 4. Verify quality and scalability
 
@@ -535,7 +535,7 @@ Store in `/public/`:
 - **No inventing styles** without inspiration input
 - **Tokens must be complete** before Builder starts components
 - **Accessibility** — Color contrast must meet WCAG 2.1 AA (4.5:1)
-- **Logo files required before build** — SVG preferred, convert PNG via Vectorizer.ai if needed
+- **Logo files required before build** — SVG preferred, convert PNG via SVGcode (https://svgco.de) — free, runs in browser if needed
 
 ---
 
