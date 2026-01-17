@@ -28,6 +28,16 @@ After Site Kickoff completes, before Builder Agent begins component work.
 
 ---
 
+## Before Starting
+
+1. Confirm model is switched to Gemini
+2. ASK user for inspiration before generating anything:
+   - "Please share visual inspiration (screenshots, Dribbble links, or reference sites)"
+   - "What mood/feel do you want? (clean, playful, bold, minimal, etc.)"
+3. Do NOT proceed until inspiration is provided or user says "skip"
+
+---
+
 ## Workflow
 
 ### Part 1: Inspiration Intake
