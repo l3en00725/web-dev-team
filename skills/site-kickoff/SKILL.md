@@ -22,6 +22,22 @@ Immediately after importing the Hub repo. This is the **first skill** that runs 
 
 ## Workflow
 
+### Step 0: Repo Status Check
+
+Before beginning, determine if we're in the Hub or a graduated repo.
+
+**Check:** Look at the git remote origin URL or folder name.
+
+**If repo is `web-dev-team`:**
+- We're in the Hub
+- Repo graduation is REQUIRED during kickoff
+- Include Step 5 (Repo Graduation Reminder)
+
+**If repo is NOT `web-dev-team`:**
+- We're already in a graduated repo
+- SKIP Step 5 (Repo Graduation Reminder)
+- State: "✅ Repo graduation already complete. Current repo: [repo name]"
+
 ### Step 1: Site Classification
 
 Determine the type of site being built:
@@ -91,6 +107,8 @@ Define content approach:
 - Target keyword themes (broad categories)
 
 ### Step 5: Repo Graduation Reminder
+
+> **Skip this step if Step 0 confirmed we're already in a graduated repo.**
 
 Confirm understanding that:
 
