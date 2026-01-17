@@ -15,11 +15,11 @@ cd my-new-site
 ./scripts/init-project.sh
 
 # 3. Follow Site Kickoff prompts
-# 4. Collect logo files (SVG preferred, convert PNG via Vectorizer.ai if needed)
+# 4. Collect logo files (SVG preferred, convert PNG via SVGcode if needed)
 # 5. Build your site
 ```
 
-> **Logo Requirement:** All projects need logo files before build. SVG format preferred. If you only have PNG, convert via [Vectorizer.ai](https://vectorizer.ai).
+> **Logo Requirement:** All projects need logo files before build. SVG format preferred. If you only have PNG, convert via [SVGcode](https://svgco.de) — free, runs in browser.
 
 ---
 
@@ -70,7 +70,7 @@ See `/skills/` for full skill specifications.
 6. **Performance must pass 95+** — Before deploy (mobile + desktop)
 7. **Admin Agent must approve deployment** — Final gate
 8. **No deploy without Analytics connected** — GA4 + Search Console required
-9. **Logo files required** — SVG preferred; convert PNG via [Vectorizer.ai](https://vectorizer.ai) if needed
+9. **Logo files required** — SVG preferred; convert PNG via [SVGcode](https://svgco.de) — free, runs in browser — if needed
 
 See `/rules/system-rules.md` for full rule documentation.
 
