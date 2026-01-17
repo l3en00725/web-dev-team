@@ -18,6 +18,40 @@ For any new website project:
 
 ---
 
+## Auto-Read Rules
+
+When starting any phase, automatically read the relevant files first:
+
+**Site Kickoff:**
+- /rules/system-rules.md
+- /skills/site-kickoff/SKILL.md
+
+**Architect Phase:**
+- /agents/architect.md
+- /templates/ (all files)
+
+**Design Phase:**
+- /agents/design-imagery.md
+- /skills/design-system/SKILL.md
+
+**Builder Phase:**
+- /agents/builder.md
+- /skills/env-variable-setup/SKILL.md
+- /templates/site-structure.json
+- /templates/content-schema.md
+
+**Content Phase:**
+- /agents/content.md
+- /templates/content-schema.md
+- /templates/seo-requirements.md
+
+**QA Phase:**
+- /agents/admin-qa.md
+- /skills/pagespeed-pre-commit/SKILL.md
+- /skills/admin-dashboard/SKILL.md
+
+---
+
 ## Agent-Specific Rules
 
 ### When Acting as Architect Agent
