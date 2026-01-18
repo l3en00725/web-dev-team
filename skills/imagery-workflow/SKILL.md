@@ -14,6 +14,36 @@ Generate and optimize images for site performance. Ensures all imagery meets web
 
 ---
 
+## IMPORTANT: Manual Asset Generation
+
+> **Since Design happens in the external Gemini Web Interface (Design Director Gem), the user may generate assets there. The Builder must expect assets to be manually placed in `/public/assets/` before the build phase begins.**
+
+### How Assets Are Created in Video-Led Workflow
+
+1. **During Design Extraction (Phase 5):** The Design Director Gem analyzes the reference video and outputs `asset_prompts` in the `layout-manifest.json`
+2. **User generates assets:** Using the prompts from the manifest, the user generates images in Gemini Web Interface
+3. **User downloads assets:** Generated images are downloaded and placed in `/public/assets/`
+4. **Builder verifies:** Before building, Builder scans the manifest and verifies all referenced assets exist
+
+### Asset Checklist Before Build
+
+Before proceeding to the Build phase, verify:
+
+- [ ] All assets referenced in `layout-manifest.json` layers exist in `/public/assets/`
+- [ ] Asset filenames match exactly what's specified in the manifest
+- [ ] Images are in web-optimized formats (WebP preferred)
+- [ ] Images meet size thresholds (hero: 200kb, content: 100kb)
+
+### If Assets Are Missing
+
+If the Builder encounters missing assets:
+1. Create a placeholder `<div>` with red border
+2. Log a warning: `"WARNING: Missing asset [filename]"`
+3. Continue building — do not block
+4. User must add missing assets before QA phase
+
+---
+
 ## Trigger
 
 When site needs:
@@ -21,6 +51,7 @@ When site needs:
 - AI-generated illustrations
 - Brand-specific visuals
 - Images that stock photos can't provide
+- **Assets specified in `layout-manifest.json` asset_prompts**
 
 ---
 

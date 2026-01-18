@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_comment": "Template for layout-manifest.json - Design Director Gem outputs this based on video analysis",
+
+  "meta": {
+    "generatedAt": "",
+    "referenceVideo": "description or filename of reference video",
+    "siteType": "marketing | local-seo | saas | ecommerce | content",
+    "anchorCopySource": "anchor-copy.md"
+  },
+
+  "design_dna": {
+    "vibe": "immersive-premium | clean-minimal | playful-bold | corporate-professional",
+    "font_recommendations": "Use a display font for headers, clean sans-serif for body.",
+    "color_story": "Dark backgrounds with neon accents for tech feel.",
+    "motion_philosophy": "Subtle parallax, smooth transitions, no jarring animations."
+  },
+
+  "tailwind_config": {
+    "extend": {
+      "colors": {
+        "brand-primary": "#0055ff",
+        "brand-secondary": "#00ff99",
+        "brand-accent": "#ff0055",
+        "brand-dark": "#0a0a0a",
+        "brand-light": "#fafafa"
+      },
+      "backgroundImage": {
+        "hero-gradient": "linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)",
+        "hero-pattern": "url('/assets/noise.png')",
+        "section-gradient": "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)"
+      },
+      "animation": {
+        "float": "float 6s ease-in-out infinite",
+        "fade-in": "fadeIn 0.5s ease-out",
+        "slide-up": "slideUp 0.6s ease-out"
+      },
+      "keyframes": {
+        "float": {
+          "0%, 100%": { "transform": "translateY(0)" },
+          "50%": { "transform": "translateY(-20px)" }
+        },
+        "fadeIn": {
+          "0%": { "opacity": "0" },
+          "100%": { "opacity": "1" }
+        },
+        "slideUp": {
+          "0%": { "opacity": "0", "transform": "translateY(20px)" },
+          "100%": { "opacity": "1", "transform": "translateY(0)" }
+        }
+      },
+      "fontFamily": {
+        "display": ["'Space Grotesk'", "sans-serif"],
+        "body": ["'Inter'", "sans-serif"]
+      }
+    }
+  },
+
+  "sections": [
+    {
+      "id": "hero",
+      "type": "immersive_viewport",
+      "height": "h-screen",
+      "layout_engine": "absolute-layering",
+      "description": "Full-viewport hero with layered background and centered content",
+      "layers": [
+        {
+          "z": 0,
+          "type": "asset",
+          "src": "hero-bg.webp",
+          "classes": "absolute inset-0 w-full h-full object-cover",
+          "description": "Background image layer"
+        },
+        {
+          "z": 5,
+          "type": "overlay",
+          "classes": "absolute inset-0 bg-gradient-to-b from-transparent to-brand-dark/80",
+          "description": "Gradient overlay for text readability"
+        },
+        {
+          "z": 10,
+          "type": "content",
+          "classes": "relative z-10 flex flex-col items-center justify-center h-full text-center px-4",
+          "description": "Content container"
+        }
+      ],
+      "content": {
+        "h1_classes": "text-6xl md:text-8xl font-display font-bold tracking-tight text-white drop-shadow-xl",
+        "h2_classes": "text-xl md:text-2xl text-white/80 mt-4 max-w-2xl",
+        "cta_classes": "mt-8 px-8 py-4 bg-brand-primary text-white rounded-full font-semibold hover:bg-brand-primary/90 transition-all",
+        "cta_secondary_classes": "mt-4 px-8 py-4 border border-white/30 text-white rounded-full font-semibold hover:bg-white/10 transition-all"
+      }
+    },
+    {
+      "id": "features",
+      "type": "standard",
+      "height": "h-auto",
+      "layout_engine": "grid",
+      "description": "Feature cards in a responsive grid",
+      "container_classes": "max-w-7xl mx-auto px-4 py-24",
+      "grid_classes": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8",
+      "card": {
+        "wrapper_classes": "bg-brand-dark/50 rounded-2xl p-8 border border-white/10 hover:border-brand-primary/50 transition-all",
+        "icon_classes": "w-12 h-12 text-brand-primary mb-4",
+        "title_classes": "text-xl font-semibold text-white mb-2",
+        "description_classes": "text-white/70"
+      }
+    },
+    {
+      "id": "cta_section",
+      "type": "standard",
+      "height": "h-auto",
+      "layout_engine": "flexbox",
+      "description": "Call-to-action section with centered content",
+      "layers": [
+        {
+          "z": 0,
+          "type": "background",
+          "classes": "bg-brand-primary"
+        },
+        {
+          "z": 10,
+          "type": "content",
+          "classes": "max-w-4xl mx-auto px-4 py-24 text-center"
+        }
+      ],
+      "content": {
+        "h2_classes": "text-4xl md:text-5xl font-display font-bold text-white mb-4",
+        "p_classes": "text-xl text-white/80 mb-8",
+        "cta_classes": "px-8 py-4 bg-white text-brand-primary rounded-full font-semibold hover:bg-white/90 transition-all"
+      }
+    }
+  ],
+
+  "asset_prompts": [
+    {
+      "id": "hero-bg",
+      "filename": "hero-bg.webp",
+      "description": "Abstract dark gradient background with subtle geometric shapes and light particles. Tech/modern feel. 1920x1080 minimum.",
+      "style": "digital art, dark mode, subtle glow effects"
+    },
+    {
+      "id": "noise-texture",
+      "filename": "noise.png",
+      "description": "Subtle grain/noise texture for overlay. Transparent PNG, tileable.",
+      "style": "film grain, subtle, 200x200 tileable"
+    }
+  ],
+
+  "_usage_notes": {
+    "for_builder": [
+      "Apply tailwind_config.extend to tailwind.config.mjs FIRST",
+      "Scan all layers for asset references and verify they exist",
+      "Follow z-index layering exactly as specified",
+      "Use the exact classes provided - do not improvise",
+      "If an asset is missing, create a red placeholder div"
+    ],
+    "for_content_agent": [
+      "H1/H2/CTA text comes from anchor-copy.md",
+      "Body content fills in after layout is built"
+    ]
+  }
+}

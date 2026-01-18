@@ -1,12 +1,28 @@
-# New Site Workflow
+# New Site Workflow (Video-Led Design)
 
 ## Overview
 
-Step-by-step workflow for building a new website from scratch using the web-dev-team Hub.
+Step-by-step workflow for building a new website using the **Video-Led Design** approach. Design extraction happens externally in the Gemini Web Interface, then feeds back into this repository.
 
 **Duration:** Varies by complexity  
-**Agents Involved:** All five agents  
-**Skills Used:** Most skills (excluding Redirects)
+**Agents Involved:** Orchestrator, Architect, Content, Design Gem (External), Builder, Admin/QA  
+**Key Change:** Content headlines are written BEFORE design to enable content-led layouts.
+
+---
+
+## Workflow Summary
+
+| Phase | Name | Model/Interface | Key Output |
+|-------|------|-----------------|------------|
+| 1 | Initialization | — | Cloned repo, init script run |
+| 2 | Kickoff | Claude | `project-profile.json`, `constraints.md` |
+| 3 | Architecture | Claude Opus | `strategy.md`, `site-structure.json`, `seo-requirements.md` |
+| 4 | Content - Headlines | Claude Sonnet | `anchor-copy.md` |
+| 5 | Design (External) | Gemini Web Gem | `layout-manifest.json`, `design-tokens.json`, assets |
+| 6 | Build | Cursor Auto | Working pages from manifest |
+| 7 | Content - Body | Claude Sonnet | Full page content |
+| 8 | QA | Claude | PageSpeed 95+, all checks pass |
+| 9 | Deployment | — | Live site |
 
 ---
 
@@ -32,31 +48,7 @@ This script will:
 - Initialize fresh git
 - Push to new repo
 
-### Step 1.3: Complete Site Kickoff
-
-**Skill:** Site Kickoff  
-**Owner:** Entry Gate
-
-Answer all prompts:
-- [ ] Site type classification
-- [ ] Primary goal
-- [ ] Distribution strategy
-- [ ] Distribution-specific requirements
-- [ ] Content strategy
-- [ ] Repo graduation confirmation
-- [ ] App linkage check
-- [ ] Required integrations
-- [ ] LLM confirmation
-
-**Outputs:**
-- `project-profile.json`
-- `constraints.md`
-
----
-
-## Phase 2: Repository Setup
-
-### Step 2.1: Repo Graduation
+### Step 1.3: Repo Graduation (if in Hub)
 
 **Skill:** Repo Graduation  
 **Owner:** Builder Agent
@@ -65,333 +57,321 @@ Answer all prompts:
 - [ ] Fresh git history initialized
 - [ ] Code pushed to new repo
 - [ ] Vercel project created
-- [ ] Vercel linked to new repo
 - [ ] Hub fully detached
 
-### Step 2.2: Environment Variables
+---
 
-**Skill:** Env Variable Setup  
-**Owner:** Builder Agent
+## Phase 2: Site Kickoff
 
-- [ ] `.env.example` created
-- [ ] `.env.local` populated
-- [ ] Vercel env vars configured
-- [ ] Supabase connection verified
+**Model:** Claude  
+**Owner:** Orchestrator Agent
+
+### Prompt:
+```
+You are the Orchestrator Agent. Read /skills/site-kickoff/SKILL.md and /rules/system-rules.md.
+
+Guide me through Site Kickoff. Ask me about:
+1. Site type (Marketing, Local SEO, SaaS, etc.)
+2. Primary goal (Lead gen, SEO traffic, conversions)
+3. Distribution strategy (Local, Multi-state, Global, SaaS)
+4. Required integrations
+5. Logo files
+
+Output project-profile.json and constraints.md when complete.
+```
+
+### Checklist:
+- [ ] Site type classification
+- [ ] Primary goal
+- [ ] Distribution strategy
+- [ ] Distribution-specific requirements
+- [ ] App linkage check
+- [ ] Required integrations
+- [ ] Logo files collected
+
+### Outputs:
+- [ ] `project-profile.json`
+- [ ] `constraints.md`
+
+### Gate:
+**Cannot proceed to Phase 3 until both files exist.**
 
 ---
 
 ## Phase 3: Architecture
 
-### Step 3.1: Strategy Definition
+**Model:** Claude Opus  
+**Owner:** Architect Agent
 
-**Agent:** Architect Agent (Claude Opus)
+### Prompt:
+```
+You are the Architect Agent. Read /agents/architect.md and review project-profile.json.
 
-Create:
+Create the following strategy documents:
+1. strategy.md — Site goals, audience, positioning, brand direction
+2. site-structure.json — Complete page hierarchy with slugs
+3. content-schema.md — Content types and field definitions
+4. seo-requirements.md — Metadata rules per page type
+
+Output the full file contents for each.
+```
+
+### Checklist:
 - [ ] `strategy.md` — Site goals, audience, positioning
 - [ ] `site-structure.json` — Page hierarchy and routes
 - [ ] `content-schema.md` — Content types and fields
 - [ ] `seo-requirements.md` — Metadata rules per page type
-- [ ] `constraints.md` — Technical limitations
 
-### Step 3.2: Keyword Validation
+### Optional (if applicable):
+- [ ] Keyword validation via Keywords API
+- [ ] Location strategy (if Local SEO)
 
-**Skill:** Keywords API  
-**Owner:** Architect Agent
-
-- [ ] Seed keywords identified
-- [ ] Search volume validated
-- [ ] Zero-volume keywords flagged
-- [ ] `keyword-data.json` generated
-
-### Step 3.3: Location Strategy (if Local SEO)
-
-**Skill:** Local SEO Location Builder (planning)  
-**Owner:** Architect Agent
-
-- [ ] Target locations listed
-- [ ] Slug pattern defined
-- [ ] Internal linking rules specified
+### Gate:
+**Cannot proceed to Phase 4 until all 4 files exist.**
 
 ---
 
-## Phase 4: Design
+## Phase 4: Content - Headlines (Anchor Copy)
 
-### Step 4.1: Inspiration Intake
+**Model:** Claude Sonnet  
+**Owner:** Content Agent
 
-**Skill:** Design System  
-**Owner:** Design/Imagery Agent (Gemini)
+> **WHY THIS PHASE EXISTS:** High-quality design is "content-led." The Design Gem needs to know the exact headlines to create layouts that fit the content. Generic layouts happen when design precedes content.
 
-- [ ] Inspiration collected (screenshots, URLs)
-- [ ] Visual patterns analyzed
-- [ ] Inspiration documented in `/references/inspiration/`
+### Prompt:
+```
+You are the Content Agent. Read site-structure.json.
 
-### Step 4.2: Design Tokens
+We need "Anchor Content" for the design phase. Write ONLY:
+- H1 Headline
+- H2 Subheadline  
+- CTA button text
 
-**Skill:** Design System  
-**Owner:** Design/Imagery Agent
+For these pages:
+- Homepage
+- Key landing pages (from site-structure.json)
 
-- [ ] `design-tokens.json` generated
-- [ ] `effects.md` created
-- [ ] Color contrast verified (WCAG 2.1 AA)
+Output as anchor-copy.md.
 
-### Step 4.3: Brand Assets
+IMPORTANT: Do NOT write body paragraphs yet. This copy will drive the visual design.
+```
 
-**Skill:** Design System  
-**Owner:** Design/Imagery Agent
+### Checklist:
+- [ ] H1 headlines for all key pages
+- [ ] H2 subheadlines for all key pages
+- [ ] CTA button text for all key pages
+- [ ] Output saved as `anchor-copy.md`
 
-- [ ] Favicon (all sizes) created
-- [ ] App icons (PWA) created
-- [ ] Assets stored in `/public/`
+### Gate:
+**Cannot proceed to Phase 5 until `anchor-copy.md` exists with headlines for all key pages.**
 
 ---
 
-## Phase 5: Build
+## Phase 5: Design Extraction (External Gem)
 
-### Step 5.1: Project Structure
+**Interface:** Gemini Web — Design Director (Web Dev Team) Gem  
+**Owner:** User (with Design Gem)
 
-**Agent:** Builder Agent (Cursor Auto)
+> **THIS IS AN AIR-GAPPED PHASE.** You will leave Cursor, go to Gemini Web Interface, extract the design, and bring the outputs back.
 
-- [ ] Astro project initialized
-- [ ] Dependencies installed
-- [ ] File structure created
-- [ ] Design tokens applied to CSS
+### Step 5.1: Find Inspiration
 
-### Step 5.2: CMS Setup
+- [ ] Go to [Awwwards](https://www.awwwards.com/) to find a reference site
+- [ ] Browse Sites of the Day, Nominees, or Collections for inspiration
+- [ ] Pick a site that matches your desired vibe/aesthetic
 
-**Skill:** CMS/Content Connector  
+### Step 5.2: Record Video
+
+- [ ] Open the reference site in your browser
+- [ ] Record a 30-60 second screen capture showing:
+  - Hero section and initial viewport
+  - Scrolling behavior and animations
+  - Hover interactions on buttons/cards
+  - Key page sections
+- [ ] Save the video file
+
+### Step 5.3: Prepare Other Inputs
+
+- [ ] Have `anchor-copy.md` content ready to paste (H1, H2, CTAs from Phase 4)
+- [ ] Have `project-profile.json` context ready (site type, brand direction)
+
+### Step 5.4: Open Design Gem
+
+- [ ] Go to [Gemini Web Interface](https://gemini.google.com)
+- [ ] Open the **"Design Director (Web Dev Team)"** Gem
+
+### Step 5.5: Upload & Extract
+
+Upload the video, then use this prompt:
+```
+Extract the design system for this content based on the video.
+
+ANCHOR COPY:
+[Paste contents of anchor-copy.md here]
+
+PROJECT CONTEXT:
+[Paste relevant info from project-profile.json]
+
+OUTPUT:
+1. layout-manifest.json — Full structure with sections, layers, z-index, Tailwind classes
+2. design-tokens.json — Colors, typography, spacing, animations
+3. Asset prompts — Descriptions for any background images needed
+```
+
+### Step 5.6: Copy Outputs Back to Cursor
+
+- [ ] Create `src/data/layout-manifest.json` — paste the layout manifest JSON
+- [ ] Create `src/data/design-tokens.json` — paste the design tokens JSON
+- [ ] Download/generate any assets to `/public/assets/`
+
+### Step 5.7: Verify Assets
+
+- [ ] Check `layout-manifest.json` for asset references (e.g., `hero-bg.webp`)
+- [ ] Confirm each referenced asset exists in `/public/assets/`
+- [ ] If missing, generate with Gem or create placeholder
+
+### Outputs:
+- [ ] `src/data/layout-manifest.json`
+- [ ] `src/data/design-tokens.json`
+- [ ] All referenced assets in `/public/assets/`
+
+### Gate:
+**Cannot proceed to Phase 6 until all files exist and JSON is valid.**
+
+---
+
+## Phase 6: Build
+
+**Model:** Cursor Auto  
 **Owner:** Builder Agent
 
-- [ ] CMS option selected
-- [ ] Content collections configured
-- [ ] Schemas implemented with Zod
-- [ ] Content loading utilities created
+### Prompt:
+```
+You are the Builder Agent. Read /agents/builder.md.
 
-### Step 5.3: Page Implementation
+I have placed the design spec in:
+- src/data/layout-manifest.json (Page Blueprint)
+- src/data/design-tokens.json (Global Variables)
 
-**Agent:** Builder Agent
+Execute these steps in order:
 
+1. CONFIG: Apply tailwind_config.extend from layout-manifest.json to tailwind.config.mjs
+
+2. ASSET VERIFICATION: Scan layout-manifest.json for all asset references in the layers arrays. Verify each exists in /public/assets/. If missing, create a placeholder div with a red border and log: "WARNING: Missing asset [filename]"
+
+3. BUILD: Implement the Homepage using the exact layers, z-index, and classes defined in the manifest.
+
+STRICT RULE: Follow the manifest exactly. Do not refactor into a standard grid unless the JSON specifies it. Do not invent layouts.
+```
+
+### Checklist:
+- [ ] Tailwind config updated with manifest extensions
+- [ ] Assets verified (or placeholders created)
+- [ ] Homepage built from manifest
 - [ ] All pages from `site-structure.json` created
-- [ ] Layouts implemented
-- [ ] Components built
-- [ ] Routes configured
+- [ ] Layouts match manifest exactly
+- [ ] CMS/content structure set up
+- [ ] Forms implemented
+- [ ] SEO components created
+- [ ] `npm run build` passes
 
-### Step 5.4: Location Pages (if Local SEO)
-
-**Skill:** Local SEO Location Builder  
-**Owner:** Builder Agent
-
-- [ ] Location pages generated
-- [ ] Slugs match pattern
-- [ ] Internal linking implemented
-- [ ] `locations.json` manifest created
-
-### Step 5.5: SEO Implementation
-
-**Skill:** Schema/SEO Metadata  
-**Owner:** Builder Agent
-
-- [ ] SEO component created
-- [ ] Schema generators implemented
-- [ ] sitemap.xml configured
-- [ ] robots.txt configured
-
-### Step 5.6: Forms
-
-**Skill:** Webhook/Forms  
-**Owner:** Builder Agent
-
-- [ ] Form components created
-- [ ] API endpoint configured
-- [ ] Supabase leads table created
-- [ ] Webhook URLs configured
-
-### Step 5.7: OG Images
-
-**Skill:** Vercel OG Image  
-**Owner:** Builder Agent
-
-- [ ] `/api/og` endpoint created
-- [ ] OG meta tags implemented
-- [ ] All pages have OG images
+### Gate:
+**Cannot proceed to Phase 7 until build passes and pages render.**
 
 ---
 
-## Phase 6: Imagery
+## Phase 7: Content - Body
 
-### Step 6.1: Image Generation (if needed)
+**Model:** Claude Sonnet  
+**Owner:** Content Agent
 
-**Skill:** Imagery Workflow  
-**Owner:** Design/Imagery Agent
+### Prompt:
+```
+You are the Content Agent. Read /agents/content.md, site-structure.json, and content-schema.md.
 
-- [ ] Images generated via Gemini
-- [ ] Images optimized
-- [ ] Responsive variants created
+The layout is built. Now write the full body content:
+1. Body paragraphs for all pages
+2. FAQ sections (question → answer → depth pattern)
+3. Feature descriptions
+4. Service details
+5. Meta descriptions (< 160 chars)
+6. Alt text for images
 
-### Step 6.2: Stock Images (if needed)
+Follow the content schema exactly. Use keywords naturally.
+```
 
-**Skill:** Pixels/Media API  
-**Owner:** Design/Imagery Agent
-
-- [ ] Stock images fetched
-- [ ] Images optimized
-- [ ] Attribution logged
-
-### Step 6.3: Image Manifest
-
-**Skill:** Imagery Workflow  
-**Owner:** Design/Imagery Agent
-
-- [ ] `image-manifest.json` generated
-- [ ] All images under thresholds
-- [ ] Alt text assigned (by Content Agent)
-
----
-
-## Phase 7: Content
-
-### Step 7.1: Page Content
-
-**Agent:** Content Agent (Claude)
-
-- [ ] All pages have content matching schema
-- [ ] Keywords naturally integrated
-- [ ] Heading hierarchy correct
-
-### Step 7.2: Metadata
-
-**Agent:** Content Agent
-
-- [ ] All meta titles written
-- [ ] All meta descriptions written (< 160 chars)
-- [ ] All images have alt text
-
-### Step 7.3: FAQ Content
-
-**Agent:** Content Agent
-
+### Checklist:
+- [ ] Body content for all pages
 - [ ] FAQ sections written
-- [ ] Question → answer → depth pattern followed
+- [ ] Meta titles (< 60 chars)
+- [ ] Meta descriptions (< 160 chars)
+- [ ] Image alt text
+- [ ] Keywords naturally integrated
+- [ ] Heading hierarchy correct (H1 → H2 → H3)
 
-### Step 7.4: Author Bios
-
-**Agent:** Content Agent
-
-- [ ] Author profiles created
-- [ ] Credentials documented
-- [ ] Photos assigned
-
----
-
-## Phase 8: Admin Setup
-
-### Step 8.1: Admin Dashboard
-
-**Skill:** Admin Dashboard  
-**Owner:** Admin/QA Agent (Claude)
-
-- [ ] Admin routes configured
-- [ ] Auth protecting admin
-- [ ] All sections implemented
-
-### Step 8.2: Analytics Connections
-
-**Skill:** Admin Dashboard  
-**Owner:** Admin/QA Agent
-
-- [ ] Google Analytics connected
-- [ ] Search Console connected
-- [ ] Bing Webmaster Tools connected
-- [ ] Bing Places configured (if Local SEO)
-
-### Step 8.3: Social Publishing (if needed)
-
-**Skill:** Social Publishing  
-**Owner:** Admin/QA Agent
-
-- [ ] LinkedIn connected
-- [ ] Medium connected
-- [ ] Publish interface working
+### Gate:
+**Cannot proceed to Phase 8 until all pages have complete content.**
 
 ---
 
-## Phase 9: Quality Assurance
+## Phase 8: Quality Assurance
 
-### Step 9.1: Build Verification
+**Model:** Claude  
+**Owner:** Admin/QA Agent
 
-**Agent:** Admin/QA Agent
+### Prompt:
+```
+You are the Admin/QA Agent. Read /agents/admin-qa.md and /skills/pagespeed-pre-commit/SKILL.md.
 
+Run the full QA checklist:
+1. Build verification — npm run build passes
+2. All pages render without errors
+3. PageSpeed 95+ (mobile and desktop)
+4. All internal links valid
+5. SEO metadata on all pages
+6. Schema markup implemented
+7. Analytics connected
+8. Forms working
+
+Do not approve deployment until all checks pass.
+```
+
+### Checklist:
 - [ ] `npm run build` passes
 - [ ] All pages render
 - [ ] No console errors
-
-### Step 9.2: Performance Testing
-
-**Skill:** PageSpeed/Pre-Commit  
-**Owner:** Admin/QA Agent
-
 - [ ] PageSpeed 95+ mobile
 - [ ] PageSpeed 95+ desktop
-- [ ] Core Web Vitals pass
-- [ ] `pagespeed-report.json` generated
-
-### Step 9.3: Link Validation
-
-**Skill:** PageSpeed/Pre-Commit  
-**Owner:** Admin/QA Agent
-
 - [ ] All internal links valid
-- [ ] No 404s
-- [ ] `link-check-report.json` generated
+- [ ] Meta titles on all pages
+- [ ] Meta descriptions on all pages
+- [ ] Schema markup implemented
+- [ ] Google Analytics connected
+- [ ] Search Console connected
+- [ ] Forms submit successfully
 
-### Step 9.4: SEO Verification
-
-**Agent:** Admin/QA Agent
-
-- [ ] All pages have meta titles
-- [ ] All pages have meta descriptions
-- [ ] All pages have schema markup
-- [ ] `seo-checklist.md` completed
-
-### Step 9.5: OG Image Verification
-
-**Skill:** Vercel OG Image  
-**Owner:** Admin/QA Agent
-
-- [ ] All OG images 1200x630
-- [ ] Tested with social preview tools
-- [ ] `og-checklist.md` completed
+### Gate:
+**Cannot proceed to Phase 9 until QA Agent explicitly approves deployment.**
 
 ---
 
-## Phase 10: Deployment
+## Phase 9: Deployment
 
-### Step 10.1: Pre-Launch Checklist
-
-**Skill:** Admin Dashboard  
 **Owner:** Admin/QA Agent
 
-Complete all sections:
-- [ ] Technical checks
-- [ ] SEO checks
-- [ ] Performance checks
-- [ ] Analytics checks
-- [ ] Admin checks
+### Step 9.1: Final Approval
 
-### Step 10.2: Final Approval
-
-**Agent:** Admin/QA Agent
-
-- [ ] All checks passed
+- [ ] All QA checks passed
 - [ ] Deployment explicitly approved
 - [ ] Approval documented with timestamp
 
-### Step 10.3: Deploy to Production
+### Step 9.2: Deploy to Production
 
 ```bash
 vercel --prod
 ```
 
-### Step 10.4: Post-Deploy Verification
+### Step 9.3: Post-Deploy Verification
 
 - [ ] Production site loads
 - [ ] Analytics tracking
@@ -405,52 +385,51 @@ vercel --prod
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      PHASE 1: INITIALIZATION                     │
-│  Clone Hub → Init Script → Site Kickoff                         │
+│  Clone Hub → Init Script → Repo Graduation                      │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 2: REPO SETUP                         │
-│  Repo Graduation → Env Variables                                │
+│                      PHASE 2: KICKOFF (Claude)                   │
+│  Site Type → Goals → Integrations → project-profile.json        │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 3: ARCHITECTURE                       │
-│  Architect Agent: Strategy → Structure → Schema → SEO Reqs      │
+│                      PHASE 3: ARCHITECTURE (Claude Opus)         │
+│  Strategy → Structure → Schema → SEO Requirements               │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 4: DESIGN                             │
-│  Design Agent: Inspiration → Tokens → Assets                    │
+│                      PHASE 4: CONTENT - HEADLINES (Sonnet)       │
+│  H1 → H2 → CTAs → anchor-copy.md                                │
+│  ⚠️ CRITICAL: Design needs this content first!                   │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 5: BUILD                              │
-│  Builder Agent: Structure → CMS → Pages → SEO → Forms → OG      │
+│                      PHASE 5: DESIGN (Gemini Web Gem)            │
+│  ⚠️ EXTERNAL: Leave Cursor → Gemini Web Interface               │
+│  Video + Headlines → layout-manifest.json + design-tokens.json  │
+│  → Copy outputs back to Cursor                                  │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 6: IMAGERY                            │
-│  Design Agent: Generate/Fetch → Optimize → Manifest             │
+│                      PHASE 6: BUILD (Cursor Auto)                │
+│  Config → Asset Verify → Build from Manifest                    │
+│  ⚠️ STRICT: Follow manifest exactly, no improvising             │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 7: CONTENT                            │
-│  Content Agent: Pages → Metadata → FAQs → Authors               │
+│                      PHASE 7: CONTENT - BODY (Sonnet)            │
+│  Body Copy → FAQs → Meta → Alt Text                             │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 8: ADMIN SETUP                        │
-│  Admin Agent: Dashboard → Analytics → Social                    │
+│                      PHASE 8: QA (Claude)                        │
+│  Build → Performance → Links → SEO → Analytics                  │
 └─────────────────────────────────────────────────────────────────┘
                                 ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 9: QA                                 │
-│  Admin Agent: Build → Performance → Links → SEO → OG            │
-└─────────────────────────────────────────────────────────────────┘
-                                ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                      PHASE 10: DEPLOYMENT                        │
-│  Admin Agent: Checklist → Approval → Deploy → Verify            │
+│                      PHASE 9: DEPLOYMENT                         │
+│  Approval → Deploy → Verify                                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -461,15 +440,40 @@ vercel --prod
 | Phase | Typical Duration |
 |-------|------------------|
 | Initialization | 30 minutes |
-| Repo Setup | 30 minutes |
+| Kickoff | 30 minutes |
 | Architecture | 2-4 hours |
-| Design | 2-4 hours |
-| Build | 8-16 hours |
-| Imagery | 2-4 hours |
-| Content | 4-8 hours |
-| Admin Setup | 2-4 hours |
+| Content - Headlines | 30-60 minutes |
+| Design (External) | 1-2 hours |
+| Build | 4-8 hours |
+| Content - Body | 2-4 hours |
 | QA | 2-4 hours |
-| Deployment | 1 hour |
-| **Total** | **24-48 hours** |
+| Deployment | 30 minutes |
+| **Total** | **12-24 hours** |
 
-*Times vary significantly based on site complexity, number of pages, and content requirements.*
+*Times vary based on site complexity and number of pages.*
+
+---
+
+## Quick Reference: Model Switching
+
+| Phase | Model | Where |
+|-------|-------|-------|
+| Kickoff | Claude | Cursor |
+| Architecture | Claude Opus | Cursor |
+| Content - Headlines | Claude Sonnet | Cursor |
+| Design | Gemini | **Web Interface (External)** |
+| Build | Cursor Auto | Cursor |
+| Content - Body | Claude Sonnet | Cursor |
+| QA | Claude | Cursor |
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Design Gem outputs invalid JSON | Ask Gem to "fix the JSON syntax" |
+| Missing assets after design | Generate with Gem or create placeholders |
+| Builder deviates from manifest | Re-prompt with "Follow the manifest exactly" |
+| Generic layouts despite manifest | Check if manifest has proper layer definitions |
+| Headlines don't fit layout | Re-run design extraction with updated headlines |

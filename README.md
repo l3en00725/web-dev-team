@@ -4,19 +4,73 @@ Hub repository for AI-assisted website development. This is **NOT** a production
 
 ---
 
-## Quick Start
+## 🚀 How to Start a New Project
+
+### Step 1: Clone the Hub
 
 ```bash
-# 1. Clone this repo
+git clone https://github.com/your-org/web-dev-team.git my-new-site
+cd my-new-site
+```
+
+### Step 2: Start the Orchestrator
+
+Open a new chat in Cursor and paste this prompt:
+
+```
+You are the Orchestrator Agent. 
+
+Read these files:
+- /agents/orchestrator.md
+- /rules/orchestration-rules.md
+- /rules/system-rules.md
+
+Guide me through the entire website build from start to finish.
+Start with Phase 0: Site Kickoff.
+```
+
+### Step 3: Follow the Orchestrator
+
+The Orchestrator will guide you through every phase:
+
+| Phase | What Happens | Model |
+|-------|--------------|-------|
+| 0. Kickoff | Define site type, goals, integrations | Claude |
+| 1. Architect | Create strategy and structure | Claude Opus |
+| 2. Headlines | Write H1, H2, CTAs for design | Claude Sonnet |
+| 3. Design | Extract design from video reference | Gemini Web Gem |
+| 4. Build | Implement site from manifest | Cursor Auto |
+| 5. Content | Write full body copy | Claude Sonnet |
+| 6. QA | Verify and approve deployment | Claude |
+
+The Orchestrator will:
+- Tell you exactly which model to switch to
+- Generate complete, ready-to-paste prompts (no editing needed)
+- Verify outputs before proceeding to next phase
+
+---
+
+## Prerequisites
+
+Before starting, you need:
+
+1. **Design Director Gem** configured in Gemini Web Interface
+   - See `/agents/design-imagery.md` for Gem setup instructions
+2. **Logo files** (SVG preferred)
+   - If only PNG: convert via [SVGcode](https://svgco.de) — free, runs in browser
+3. **Reference video** for design inspiration
+   - Record a 30-60 second screen capture from [Awwwards](https://www.awwwards.com/)
+
+---
+
+## Quick Reference
+
+```bash
+# Clone and start
 git clone https://github.com/your-org/web-dev-team.git my-new-site
 cd my-new-site
 
-# 2. Run the init script
-./scripts/init-project.sh
-
-# 3. Follow Site Kickoff prompts
-# 4. Collect logo files (SVG preferred, convert PNG via SVGcode if needed)
-# 5. Build your site
+# Then paste the Orchestrator prompt into Cursor chat
 ```
 
 > **Logo Requirement:** All projects need logo files before build. SVG format preferred. If you only have PNG, convert via [SVGcode](https://svgco.de) — free, runs in browser.
@@ -97,14 +151,15 @@ web-dev-team/
 
 ## Workflows
 
-### New Site
-1. Clone Hub → Run init script → Site Kickoff
-2. Architect defines strategy and structure
-3. Design Agent creates design system
-4. Builder implements site
-5. Content Agent writes copy
-6. Admin/QA verifies and approves
-7. Deploy
+### New Site (Video-Led Design)
+1. **Kickoff** → Define site type, goals, integrations
+2. **Architect** → Create strategy, structure, SEO requirements
+3. **Content (Headlines)** → Write H1, H2, CTAs (design needs this first!)
+4. **Design (External)** → Record video from Awwwards → Extract via Gemini Gem
+5. **Build** → Implement from layout-manifest.json (follow exactly!)
+6. **Content (Body)** → Write full page content
+7. **QA** → Verify PageSpeed 95+, approve deployment
+8. **Deploy** → Ship it!
 
 See `/workflows/new-site-workflow.md` for detailed steps.
 
