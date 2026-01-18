@@ -1,0 +1,6 @@
+{
+  "project": "Project Name",
+  "expected_remote": "https://github.com/owner/repo-name.git",
+  "owner": "github-username-or-org",
+  "type": "website"
+}

@@ -1,3 +1,73 @@
+# Web Dev Hub — Orchestrated Build Protocol
+
+This repository uses a **HUMAN-IN-THE-LOOP orchestrator** to coordinate LLM-powered web development.
+
+**Nothing auto-runs across LLMs.**
+
+The orchestrator is a prompt router that:
+- Tracks build phases
+- Enforces quality gates
+- Outputs EXACT prompts for each phase
+- Recommends which LLM to use
+- Waits for you to confirm completion before advancing
+
+**The orchestrator does NOT design. It does NOT build. It does NOT invent visuals.**
+
+It keeps everyone honest.
+
+---
+
+## How to Start
+
+**Recommended Orchestrator LLM:** Claude (Opus or Sonnet)
+
+**Exact Orchestrator Startup Prompt:**
+
+```
+You are the Web Dev Orchestrator.
+
+Your responsibilities:
+- Track build phases
+- Enforce phase gates
+- Recommend which LLM to use for each phase
+- Provide EXACT prompts to paste into those LLMs
+- Wait for my explicit confirmation before advancing phases
+
+You do NOT design.
+You do NOT build.
+You do NOT invent visuals.
+You do NOT skip phases.
+
+Your job is to keep the process clean, explicit, and human-in-the-loop.
+
+**FIRST:** Verify repository context (Phase 0 — REQUIRED)
+
+Run:
+- git rev-parse --is-inside-work-tree
+- git remote -v
+
+Then ask me for:
+1. Project name
+2. Site type (marketing, nonprofit, SaaS, local service, etc.)
+3. Whether this is a NEW BUILD or a REBUILD
+4. Expected GitHub repository URL (owner/repo-name)
+
+**Then compare current remotes against expected repo.**
+**If mismatch → STOP and provide exact fix commands (no suggestions).**
+
+Only after repository is verified, proceed to Phase 1 (Site Kickoff).
+```
+
+### The Division of Labor
+
+> **Gemini interprets taste.**  
+> **Cursor executes taste.**  
+> **The orchestrator keeps everyone honest.**
+
+**📚 All prompts available in:** `/docs/prompt-library.md`
+
+---
+
 # web-dev-team
 
 Hub repository for AI-assisted website development. This is **NOT** a production site — it defines agents, skills, rules, and workflows that get pulled into every new project.
@@ -29,11 +99,18 @@ cd my-new-site
 
 | Agent | Role | LLM |
 |-------|------|-----|
+| **Orchestrator** | Prompt routing, phase tracking, gate enforcement | Claude |
 | **Architect** | Strategy, structure, constraints | Claude Opus |
-| **Builder** | Implementation, code, components | Cursor Auto |
-| **Design/Imagery** | Visuals, tokens, image generation | Gemini |
+| **Builder** | Implementation, code, components | Cursor Auto (GPT-5 / GPT-4.1) |
+| **Design/Imagery** | Design analysis, tokens, image generation | Gemini |
 | **Content** | SEO copy, metadata, page content | Claude |
 | **Admin/QA** | Verification, backend setup, deploy approval | Claude |
+
+**Important:** See `/docs/llm-roles.md` for detailed clarification on when to use which LLM.
+
+> **Gemini interprets taste.**  
+> **Cursor executes taste.**  
+> **The orchestrator keeps everyone honest.**
 
 See `/agents/` for full agent definitions.
 
@@ -80,10 +157,12 @@ See `/rules/system-rules.md` for full rule documentation.
 
 ```
 web-dev-team/
-├── /agents/           → Agent definitions (5 agents)
+├── /agents/           → Agent definitions (6 agents including Orchestrator)
 ├── /skills/           → Skill specs (16 skills, SKILL.md format)
 ├── /rules/            → System guardrails
 ├── /workflows/        → Step-by-step flows
+├── /design/           → Design inspiration prompts and analysis
+├── /docs/             → Documentation (LLM roles, best practices)
 ├── /capabilities/     → API playbooks
 ├── /scripts/          → Automation (init-project.sh)
 ├── /templates/        → Starter files for new projects
@@ -100,13 +179,17 @@ web-dev-team/
 ### New Site
 1. Clone Hub → Run init script → Site Kickoff
 2. Architect defines strategy and structure
-3. Design Agent creates design system
-4. Builder implements site
-5. Content Agent writes copy
-6. Admin/QA verifies and approves
-7. Deploy
+3. Design Agent creates design tokens
+4. **[OPTIONAL]** Design Inspiration Review (Gemini analysis outside Cursor)
+5. Builder implements site following design rules
+6. Imagery Agent generates/sources images
+7. Content Agent writes copy
+8. Admin/QA verifies and approves
+9. Deploy
 
 See `/workflows/new-site-workflow.md` for detailed steps.
+
+**Key addition:** Phase 3A (Design Inspiration Review) is optional but strongly recommended for any design-forward site. See `/design/design-inspiration-prompt.md` for the canonical Gemini prompt.
 
 ### Rebuild Site
 Same as new site, plus:
