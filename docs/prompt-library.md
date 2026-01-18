@@ -212,12 +212,213 @@ Begin with the highest-priority page only.
 
 ---
 
+## 6. Image Requirements Check Prompt
+
+**LLM:** Claude (Orchestrator)  
+**When:** Beginning of Phase 4 (Imagery)  
+**Purpose:** Verify prerequisites before image generation
+
+```
+Phase 4 (Imagery) Prerequisites Check:
+
+Required before proceeding:
+1. OPENAI_API_KEY in .env — verify it exists
+2. design-tokens.json — verify file exists
+3. design-analysis.md — verify if Phase 3A was completed (optional but recommended)
+4. image-requirements.json — must be created with full specs
+
+Check each item and report status:
+- ✅ Found
+- ❌ Missing — provide instructions to add
+
+If OPENAI_API_KEY is missing:
+🚫 STOP — Cannot generate images without API key
+
+Instructions:
+1. Get API key from https://platform.openai.com/api-keys
+2. Add to .env: OPENAI_API_KEY=sk-your-key-here
+3. Confirm when complete
+
+Do not proceed until all required items are verified.
+```
+
+---
+
+## 7. Image Prompt Generation Prompt
+
+**LLM:** Claude  
+**When:** Phase 4.3 — After image requirements are defined  
+**Purpose:** Generate exceptional DALL-E 3 prompts
+
+```
+Enter IMAGE PROMPT GENERATION MODE.
+
+Context files to load:
+- design-tokens.json (color palette with exact hex codes)
+- design-analysis.md (visual style direction, if exists)
+- image-requirements.json (specifications for each image)
+
+For EACH image in image-requirements.json, generate a DALL-E 3 prompt.
+
+PROMPT STRUCTURE (follow exactly for each image):
+
+1. STYLE (20-30 words)
+   - Artistic/render style in detail
+   - Material qualities (plastic, glass, matte, etc.)
+   - Overall aesthetic feel
+
+2. SUBJECT (30-50 words)
+   - Exactly what the image depicts with specificity
+   - Key elements that MUST appear
+   - Spatial relationships between elements
+
+3. COMPOSITION (20-30 words)
+   - Framing and positioning
+   - Where the focal point should be
+   - Safe zones for text overlay (if applicable)
+
+4. LIGHTING (20-30 words)
+   - Light source direction and quality
+   - Shadow style and intensity
+   - Atmospheric effects if any
+
+5. COLORS (20-30 words)
+   - Reference EXACT hex codes from design tokens
+   - How colors are distributed across elements
+   - Color temperature and saturation level
+
+6. BACKGROUND (30-50 words)
+   - For TRANSPARENT images (icons, illustrations that need alpha):
+     "isolated on solid pure white (#FFFFFF) background with absolutely 
+     no shadows or reflections extending beyond the object boundary, 
+     clean crisp anti-aliased edges suitable for compositing on any 
+     background color including dark backgrounds"
+   - For SOLID backgrounds: specify exact color
+   - For GRADIENT/SCENE backgrounds: describe in full detail
+
+7. TECHNICAL (10-20 words)
+   - Aspect ratio for composition
+   - Where to position main subject in frame
+   - Any cropping considerations
+
+8. AVOID (list 5-8 specific things)
+   - Things that should NOT appear
+   - Common AI generation pitfalls to prevent
+   - Style elements to exclude
+
+CRITICAL RULES:
+- Each prompt must be 150-300 words minimum
+- Include exact hex codes from design tokens
+- For transparent images: ALWAYS specify white background for generation + post-processing removal
+- Be extremely specific about edges and isolation for icons
+- Specify what to AVOID — this prevents common AI mistakes
+
+OUTPUT FORMAT for each image:
+
+---
+**Image ID:** {id}
+**Type:** {type}
+**Transparency Required:** {true/false}
+
+**Full Prompt:**
+{complete prompt as one paragraph, 150-300 words}
+
+**API Parameters:**
+- model: "dall-e-3"
+- size: "{1024x1024 | 1792x1024 | 1024x1792}"
+- quality: "hd"
+- style: "{vivid | natural}"
+
+**Post-Processing Required:**
+- [ ] Background removal (if transparency required)
+- [ ] Edge cleanup
+- [ ] Color correction to match tokens
+- [ ] Resize to final dimensions
+- [ ] Generate responsive variants
+---
+
+Generate prompts for ALL images in image-requirements.json.
+Wait for my review and approval before proceeding to image generation.
+```
+
+---
+
+## 8. Image Review Prompt
+
+**LLM:** Claude (Orchestrator)  
+**When:** After DALL-E 3 images are generated  
+**Purpose:** Review generated images before post-processing
+
+```
+Image generation complete.
+
+Generated images are in: /assets/images/generated/
+
+For each image, I need your review:
+
+1. Does it match the intended style from design-analysis.md?
+2. Are the colors reasonably close to design tokens?
+3. Is the composition correct for the intended use?
+4. For transparent images: Is the subject cleanly isolated on white?
+
+Mark each image as:
+- ✅ APPROVED — proceed to post-processing
+- 🔄 REGENERATE — I'll provide feedback for a revised prompt
+- ❌ SKIP — will use alternative (stock photo, custom design, etc.)
+
+For any image marked REGENERATE, provide specific feedback:
+- What's wrong with the current image
+- What should change in the prompt
+- Any additional details to include
+
+Confirm your review for all images before proceeding to post-processing.
+```
+
+---
+
+## 9. Post-Processing Verification Prompt
+
+**LLM:** Claude (Orchestrator)  
+**When:** After background removal and optimization  
+**Purpose:** Verify post-processing quality
+
+```
+Post-processing complete.
+
+Verify the following for each processed image:
+
+For TRANSPARENT images (icons, illustrations):
+- [ ] Background fully removed (no white fringing)
+- [ ] Edges are clean and anti-aliased
+- [ ] Works on both light AND dark backgrounds
+- [ ] Alpha channel is properly set
+
+For ALL images:
+- [ ] File size is under threshold
+- [ ] Responsive variants generated
+- [ ] Moved to correct folder (/assets/images/optimized/{type}/)
+- [ ] Named according to convention ({type}-{identifier}.{ext})
+
+If any image fails verification:
+- Flag the specific issue
+- Provide manual cleanup instructions
+
+Once all images pass:
+- Update image-manifest.json
+- Proceed to Content Agent for alt text assignment
+```
+
+---
+
 ## Workflow Sequence
+
+### Phase 0: Repository Verification
+→ Orchestrator verifies git remotes match expected repo
 
 ### Phase 1-2: Project Setup
 → Use **Orchestrator Startup Prompt** (#1)
 
-### Phase 3A: Design Inspiration (Optional)
+### Phase 3A: Design Inspiration (Optional but Recommended)
 1. Capture inspiration from Awwwards
 2. Use **Design Inspiration Analysis Prompt** (#2) in Gemini
 3. Review Gemini's output
@@ -225,7 +426,17 @@ Begin with the highest-priority page only.
 5. Use **Design Codification Prompt** (#4) in Claude
 6. Review and save codified rules
 
-### Phase 4-5: Build
+### Phase 4: Imagery (AI Image Generation)
+1. Use **Image Requirements Check Prompt** (#6) to verify prerequisites
+2. Create/review `image-requirements.json` with full specs
+3. Use **Image Prompt Generation Prompt** (#7) to generate DALL-E 3 prompts
+4. Review and approve prompts
+5. Generate images via OpenAI API
+6. Use **Image Review Prompt** (#8) to review generated images
+7. Run post-processing (background removal, optimization)
+8. Use **Post-Processing Verification Prompt** (#9) to verify quality
+
+### Phase 5: Build
 → Use **Builder Handoff Prompt** (#5) in Cursor
 
 ---
@@ -251,16 +462,21 @@ Begin with the highest-priority page only.
 
 ## Quick Reference Table
 
-| Prompt | LLM | Location | Phase | Output Type |
-|--------|-----|----------|-------|-------------|
-| Orchestrator Startup | Claude | Any | Start | Phase tracking |
-| Design Inspiration | Gemini | Outside Cursor | 3A | Design intelligence |
-| Phase Completion | Claude | Any | 3A → 3B | Gate check |
-| Design Codification | Claude | Any | 3B | Documented rules |
-| Builder Handoff | Cursor | Inside Cursor | 5 | Implementation |
+| # | Prompt | LLM | Location | Phase | Output Type |
+|---|--------|-----|----------|-------|-------------|
+| 1 | Orchestrator Startup | Claude | Any | Start | Phase tracking |
+| 2 | Design Inspiration | Gemini | Outside Cursor | 3A | Design intelligence |
+| 3 | Phase Completion | Claude | Any | 3A → 3B | Gate check |
+| 4 | Design Codification | Claude | Any | 3B | Documented rules |
+| 5 | Builder Handoff | Cursor | Inside Cursor | 5 | Implementation |
+| 6 | Image Requirements Check | Claude | Any | 4.1 | Prerequisites verified |
+| 7 | Image Prompt Generation | Claude | Any | 4.3 | DALL-E 3 prompts |
+| 8 | Image Review | Claude | Any | 4.4 | Approval/feedback |
+| 9 | Post-Processing Verify | Claude | Any | 4.5 | Quality check |
 
 ---
 
 ## Version History
 
+- **v1.1** — 2026-01-18 — Added image generation prompts (#6-9) for Phase 4
 - **v1.0** — 2026-01-17 — Initial prompt library with enhanced prompts

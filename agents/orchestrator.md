@@ -47,7 +47,7 @@ The Orchestrator is a **PROMPT ROUTER**, not an executor.
 | 2. Architect | Architect | Claude Opus | strategy.md, site-structure.json, content-schema.md, seo-requirements.md |
 | 3. Design Tokens | Design/Imagery | Gemini | design-tokens.json, effects.md |
 | **3A. Design Inspiration Review** | Design/Imagery | **Gemini (OUTSIDE Cursor)** | design-analysis.md reviewed and saved |
-| 4. Imagery | Design/Imagery | Gemini | /assets/images/ populated, image-manifest.json |
+| **4. Imagery** | Design/Imagery | **Claude + OpenAI API** | image-prompts.json, /assets/images/ populated, image-manifest.json |
 | 5. Build | Builder | Cursor Auto | All pages created, components working |
 | 6. Content | Content | Claude | All page copy written |
 | 7. QA | Admin/QA | Claude | PageSpeed 95+, all checks pass |
@@ -245,6 +245,135 @@ If not already present, the Orchestrator should create:
 - Purely functional/utilitarian interfaces
 
 **Key principle:** Taste interpretation happens BEFORE Builder touches code.
+
+---
+
+## Phase 4: Imagery (AI Image Generation)
+
+**Purpose:** Generate, process, and optimize all site images using AI  
+**Agent:** Design/Imagery Agent  
+**LLMs:** Claude (prompt generation) + OpenAI DALL-E 3 API (image generation)
+
+### Sub-Phases
+
+| Sub-Phase | Description | Output |
+|-----------|-------------|--------|
+| 4.1 | Prerequisites Check | OPENAI_API_KEY verified |
+| 4.2 | Image Requirements | image-requirements.json |
+| 4.3 | Prompt Generation | image-prompts.json |
+| 4.4 | Image Generation | /assets/images/generated/ |
+| 4.5 | Post-Processing | Background removal, optimization |
+| 4.6 | Manifest Update | image-manifest.json |
+
+### Step 4.1: Prerequisites Check
+
+**Before proceeding, verify:**
+- ✅ `OPENAI_API_KEY` exists in `.env`
+- ✅ `design-tokens.json` exists (color palette)
+- ✅ `design-analysis.md` exists (if Phase 3A was completed)
+
+**If `OPENAI_API_KEY` is missing:**
+
+```
+🚫 STOP — Cannot generate images without API key
+
+Instructions:
+1. Get API key from https://platform.openai.com/api-keys
+2. Add to .env: OPENAI_API_KEY=sk-your-key-here
+3. Confirm when complete
+
+Do not proceed until verified.
+```
+
+### Step 4.2: Image Requirements
+
+Create `image-requirements.json` using template at `/templates/image-requirements.json`.
+
+**Each image must specify:**
+- `id` — Unique identifier
+- `type` — hero, icon, illust, feature, bg
+- `context` — Where it's used, what it's for
+- `subject` — What the image depicts
+- `technical_requirements` — Dimensions, transparency, formats
+- `style_requirements` — Render style, lighting, colors
+- `avoid` — What should NOT appear
+
+**Gate:** User confirms image requirements are complete
+
+### Step 4.3: Prompt Generation (Claude)
+
+**Orchestrator provides:**
+
+```
+Enter IMAGE PROMPT GENERATION MODE.
+
+Load context from:
+- design-tokens.json
+- design-analysis.md (if exists)
+- image-requirements.json
+
+For EACH image, generate a DALL-E 3 prompt that is:
+- 150-300 words minimum
+- Includes exact hex codes from design tokens
+- Specifies transparency requirements explicitly (white background for removal)
+- Lists 5-8 things to AVOID
+- Follows structure: STYLE + SUBJECT + COMPOSITION + LIGHTING + COLORS + BACKGROUND + TECHNICAL + AVOID
+
+Output as structured JSON.
+Wait for approval before image generation.
+```
+
+**Output:** `image-prompts.json`
+
+**Gate:** User reviews and approves all prompts
+
+### Step 4.4: Image Generation (OpenAI API)
+
+**Process:**
+1. Call DALL-E 3 API for each approved prompt
+2. Use appropriate size (1024x1024, 1792x1024, or 1024x1792)
+3. Save to `/assets/images/generated/`
+4. Rate limit: ~5 requests per minute
+
+**Gate:** User reviews generated images
+- ✅ Approved → proceed to post-processing
+- 🔄 Regenerate → provide feedback for new prompt
+- ❌ Skip → use alternative
+
+### Step 4.5: Post-Processing
+
+**For images requiring transparency:**
+1. Run background removal (rembg or remove.bg)
+2. Verify edges are clean (no white fringing)
+3. Test on both light and dark backgrounds
+
+**For all images:**
+1. Optimize file size (under thresholds)
+2. Generate responsive variants
+3. Move to final folders (`/assets/images/optimized/{type}/`)
+
+**File naming:** `{type}-{identifier}.{ext}`
+- `hero-home.webp`
+- `icon-analytics.png`
+- `illust-empty-state.png`
+
+### Step 4.6: Manifest Update
+
+Update `image-manifest.json` with:
+- All image paths and variants
+- File sizes and optimization stats
+- Prompts used for each image
+- Approval status
+
+**Phase 4 Gate:**
+- ✅ All required images generated
+- ✅ All transparent images pass edge verification
+- ✅ All images under size thresholds
+- ✅ Responsive variants created
+- ✅ `image-manifest.json` complete
+- ✅ Files in correct folders with correct names
+
+**Only then can Phase 5 (Build) begin.**
 
 ---
 

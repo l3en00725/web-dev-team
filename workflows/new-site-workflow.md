@@ -349,34 +349,88 @@ Create:
 
 ---
 
-## Phase 6: Imagery
+## Phase 6: Imagery (AI Image Generation)
 
-### Step 6.1: Image Generation (if needed)
+### Step 6.0: Prerequisites Check
+
+**Skill:** Imagery Workflow  
+**Owner:** Orchestrator
+
+- [ ] `OPENAI_API_KEY` verified in `.env`
+- [ ] `design-tokens.json` exists
+- [ ] `design-analysis.md` exists (if Phase 3A completed)
+
+**Gate:** Cannot proceed without verified API key
+
+### Step 6.1: Image Requirements Definition
 
 **Skill:** Imagery Workflow  
 **Owner:** Design/Imagery Agent
 
-- [ ] Images generated via Gemini
-- [ ] Images optimized
-- [ ] Responsive variants created
+- [ ] `image-requirements.json` created using template
+- [ ] All required images listed with full specs
+- [ ] Each image has: id, type, context, subject, technical_requirements, style_requirements, avoid list
+- [ ] Transparency requirements explicitly defined
 
-### Step 6.2: Stock Images (if needed)
+**Gate:** User confirms requirements are complete
+
+### Step 6.2: Prompt Generation (Claude)
+
+**Skill:** Imagery Workflow  
+**Owner:** Design/Imagery Agent (Claude)
+
+- [ ] Exceptional prompts generated (150-300 words each)
+- [ ] Exact hex codes from design tokens included
+- [ ] Transparency specs included for icons/illustrations
+- [ ] AVOID lists included for each prompt
+- [ ] Output saved as `image-prompts.json`
+
+**Gate:** User reviews and approves all prompts
+
+### Step 6.3: Image Generation (OpenAI DALL-E 3)
+
+**Skill:** Imagery Workflow  
+**Owner:** Design/Imagery Agent (OpenAI API)
+
+- [ ] All approved images generated via DALL-E 3
+- [ ] Images saved to `/assets/images/generated/`
+- [ ] User reviews each generated image
+
+**Gate:** User approves images (or marks for regeneration)
+
+### Step 6.4: Post-Processing
+
+**Skill:** Imagery Workflow  
+**Owner:** Design/Imagery Agent
+
+- [ ] Background removal for transparent images (icons, illustrations)
+- [ ] Edge verification (no white fringing)
+- [ ] Color correction to match design tokens (if needed)
+- [ ] Optimization to meet size thresholds
+- [ ] Responsive variants generated
+
+**Gate:** All images pass quality checks
+
+### Step 6.5: Asset Organization
+
+**Skill:** Imagery Workflow  
+**Owner:** Design/Imagery Agent
+
+- [ ] Files moved to correct folders (`/assets/images/optimized/{type}/`)
+- [ ] Files named correctly (`{type}-{identifier}.{ext}`)
+- [ ] `image-manifest.json` generated with all paths and metadata
+
+**Gate:** Manifest complete, all images in place
+
+### Step 6.6: Stock Images (if needed)
 
 **Skill:** Pixels/Media API  
 **Owner:** Design/Imagery Agent
 
-- [ ] Stock images fetched
+- [ ] Stock images fetched (for photos, supplementary images)
 - [ ] Images optimized
 - [ ] Attribution logged
-
-### Step 6.3: Image Manifest
-
-**Skill:** Imagery Workflow  
-**Owner:** Design/Imagery Agent
-
-- [ ] `image-manifest.json` generated
-- [ ] All images under thresholds
-- [ ] Alt text assigned (by Content Agent)
+- [ ] Added to manifest
 
 ---
 

@@ -1,0 +1,309 @@
+{
+  "$schema": "./image-requirements.schema.json",
+  "meta": {
+    "project": "Project Name",
+    "created_at": null,
+    "updated_at": null,
+    "design_tokens_ref": "./design-tokens.json",
+    "design_analysis_ref": "./design-analysis.md"
+  },
+  "style_context": {
+    "aesthetic": "modern, clean, tech-forward",
+    "mood": "professional, innovative, approachable",
+    "color_palette": {
+      "primary": "#0066FF",
+      "secondary": "#1a1a2e",
+      "accent": "#00D4AA",
+      "neutral": "#f5f5f7",
+      "background_dark": "#0a0a0f",
+      "background_light": "#ffffff"
+    },
+    "illustration_style": {
+      "type": "3D rendered | flat illustration | photorealistic | abstract | none",
+      "material": "soft plastic, glass reflections | matte | metallic | organic",
+      "lighting_direction": "top-left at 45 degrees",
+      "shadow_style": "soft ambient occlusion | hard shadows | no shadows",
+      "detail_level": "high | medium | minimal"
+    },
+    "consistency_notes": "All illustrations should feel like they belong to the same family — same lighting direction, same shadow softness, same level of detail, same color temperature"
+  },
+  "naming_convention": {
+    "pattern": "{type}-{identifier}.{extension}",
+    "types": {
+      "hero": "Full-width hero/banner images",
+      "feature": "Feature section images",
+      "icon": "Icons and small graphics",
+      "illust": "Illustrations",
+      "bg": "Background images and patterns",
+      "photo": "Photographic images",
+      "logo": "Logo variations"
+    },
+    "examples": [
+      "hero-home.png",
+      "feature-analytics.png",
+      "icon-dashboard.png",
+      "illust-process-step-1.png",
+      "bg-gradient-dark.png"
+    ]
+  },
+  "folder_structure": {
+    "base": "/assets/images/",
+    "generated": "/assets/images/generated/",
+    "optimized": "/assets/images/optimized/",
+    "by_type": {
+      "hero": "/assets/images/hero/",
+      "features": "/assets/images/features/",
+      "icons": "/assets/images/icons/",
+      "illustrations": "/assets/images/illustrations/",
+      "backgrounds": "/assets/images/backgrounds/",
+      "photos": "/assets/images/photos/"
+    }
+  },
+  "images": [
+    {
+      "id": "hero-home",
+      "type": "hero",
+      "priority": "high",
+      "context": {
+        "page": "Homepage",
+        "section": "Hero section",
+        "purpose": "Primary visual impact, sets tone for entire site",
+        "text_overlay": {
+          "position": "left",
+          "safe_zone": "Keep main visual interest in right 60% of frame"
+        }
+      },
+      "subject": {
+        "description": "Abstract data visualization — flowing streams of light representing data movement",
+        "key_elements": [
+          "Luminous flowing lines/ribbons",
+          "Sense of movement and energy",
+          "Depth and dimension"
+        ],
+        "mood": "Dynamic, innovative, powerful"
+      },
+      "technical_requirements": {
+        "dimensions": {
+          "width": 1920,
+          "height": 1080,
+          "aspect_ratio": "16:9"
+        },
+        "transparency": {
+          "required": false,
+          "background_type": "gradient",
+          "background_spec": "Deep navy (#1a1a2e) fading to near-black (#0a0a0f)"
+        },
+        "file_format": {
+          "primary": "webp",
+          "fallback": "jpg",
+          "for_generation": "png"
+        },
+        "optimization": {
+          "max_file_size_kb": 200,
+          "quality": 85,
+          "responsive_sizes": [640, 1024, 1920]
+        }
+      },
+      "style_requirements": {
+        "render_style": "Cinematic, photorealistic lighting on abstract forms",
+        "lighting": "Dramatic rim lighting, volumetric light rays, subtle lens flare acceptable",
+        "colors": "Primary blue (#0066FF) and accent green (#00D4AA) as light sources against dark background",
+        "depth": "Strong sense of depth — foreground bokeh elements, mid-ground focus, background fade",
+        "motion_feel": "Should feel dynamic, like captured mid-motion"
+      },
+      "avoid": [
+        "Recognizable UI elements or device screens",
+        "Human figures or faces",
+        "Readable text, numbers, or binary code",
+        "Circuit board patterns or cliché tech imagery",
+        "Flat or static composition",
+        "Oversaturated or neon colors"
+      ],
+      "placement": "/assets/images/hero/hero-home.png",
+      "prompt": null,
+      "generated": false,
+      "approved": false
+    },
+    {
+      "id": "icon-analytics",
+      "type": "icon",
+      "priority": "high",
+      "context": {
+        "page": "Homepage, Features page",
+        "section": "Features grid",
+        "purpose": "Visual identifier for analytics feature",
+        "usage": "Will be displayed on both light and dark backgrounds"
+      },
+      "subject": {
+        "description": "Bar chart with upward trend arrow",
+        "key_elements": [
+          "3-4 vertical bars of varying heights",
+          "Upward-pointing arrow or trend line",
+          "Clean, simple geometry"
+        ],
+        "mood": "Professional, clear, optimistic"
+      },
+      "technical_requirements": {
+        "dimensions": {
+          "width": 512,
+          "height": 512,
+          "aspect_ratio": "1:1"
+        },
+        "transparency": {
+          "required": true,
+          "background_type": "transparent",
+          "background_spec": "Generate on solid white (#FFFFFF) for easy background removal",
+          "isolation_notes": "Object must be completely isolated, no shadows or reflections extending beyond object boundary",
+          "edge_quality": "Clean, crisp, anti-aliased edges suitable for compositing on any background color"
+        },
+        "file_format": {
+          "primary": "png",
+          "fallback": null,
+          "for_generation": "png",
+          "alpha_channel": true
+        },
+        "optimization": {
+          "max_file_size_kb": 50,
+          "quality": 100,
+          "responsive_sizes": [64, 128, 256, 512]
+        }
+      },
+      "style_requirements": {
+        "render_style": "3D rendered, soft plastic/glass material with subtle reflections",
+        "lighting": "Soft studio lighting from top-left at 45-degree angle, subtle ambient occlusion",
+        "colors": "Primary blue (#0066FF) for bars, accent green (#00D4AA) for trend arrow",
+        "detail_level": "Medium detail, clean smooth geometry, subtle surface gradients",
+        "composition": "Centered in frame, object fills approximately 80% with equal padding"
+      },
+      "avoid": [
+        "Text, labels, or numbers on the chart",
+        "Harsh specular highlights",
+        "Complex textures or patterns",
+        "Shadows extending beyond object",
+        "Gradients that won't work on dark backgrounds",
+        "Overly realistic or photographic style"
+      ],
+      "placement": "/assets/images/icons/icon-analytics.png",
+      "post_processing": [
+        "background_removal",
+        "edge_cleanup",
+        "resize_to_variants"
+      ],
+      "prompt": null,
+      "generated": false,
+      "approved": false
+    },
+    {
+      "id": "illust-empty-state",
+      "type": "illust",
+      "priority": "medium",
+      "context": {
+        "page": "Dashboard",
+        "section": "Empty state when no data",
+        "purpose": "Friendly visual to soften empty state, encourage action",
+        "usage": "Centered in content area, likely on light background"
+      },
+      "subject": {
+        "description": "Friendly illustration of an empty box or container with a subtle sparkle suggesting potential",
+        "key_elements": [
+          "Open box or container",
+          "Subtle sparkle or light particles",
+          "Welcoming, not sad or negative"
+        ],
+        "mood": "Friendly, hopeful, encouraging"
+      },
+      "technical_requirements": {
+        "dimensions": {
+          "width": 400,
+          "height": 300,
+          "aspect_ratio": "4:3"
+        },
+        "transparency": {
+          "required": true,
+          "background_type": "transparent",
+          "background_spec": "Generate on solid white (#FFFFFF)",
+          "isolation_notes": "Illustration should be self-contained with soft edges",
+          "edge_quality": "Can have soft/faded edges for gentle integration"
+        },
+        "file_format": {
+          "primary": "png",
+          "fallback": null,
+          "for_generation": "png",
+          "alpha_channel": true
+        },
+        "optimization": {
+          "max_file_size_kb": 80,
+          "quality": 90,
+          "responsive_sizes": [200, 400]
+        }
+      },
+      "style_requirements": {
+        "render_style": "Soft 3D illustration, friendly and approachable",
+        "lighting": "Soft, even lighting with gentle shadows",
+        "colors": "Muted version of primary blue, with accent as sparkle color",
+        "detail_level": "Simple, not overly detailed",
+        "composition": "Centered, with breathing room around edges"
+      },
+      "avoid": [
+        "Sad or negative imagery",
+        "Overly complex scenes",
+        "Human figures",
+        "Text or labels",
+        "Dark or moody lighting"
+      ],
+      "placement": "/assets/images/illustrations/illust-empty-state.png",
+      "post_processing": [
+        "background_removal",
+        "color_adjustment_to_match_tokens"
+      ],
+      "prompt": null,
+      "generated": false,
+      "approved": false
+    }
+  ],
+  "post_processing_workflows": {
+    "background_removal": {
+      "description": "Remove solid background to create transparency",
+      "when": "For all images with transparency.required = true",
+      "method": "rembg library (Python) or remove.bg API",
+      "fallback": "Manual cleanup in Figma/Photoshop",
+      "verify": [
+        "No white fringing on edges",
+        "Clean anti-aliased edges",
+        "Works on both light and dark backgrounds"
+      ]
+    },
+    "edge_cleanup": {
+      "description": "Clean up any artifacts at image edges after background removal",
+      "when": "After background_removal if edges are not clean",
+      "method": "Sharp library edge detection + cleanup"
+    },
+    "color_adjustment_to_match_tokens": {
+      "description": "Adjust generated colors to exactly match design tokens",
+      "when": "If generated colors drift from specified hex values",
+      "method": "Color mapping in Sharp or manual adjustment"
+    },
+    "resize_to_variants": {
+      "description": "Generate responsive size variants",
+      "when": "For all images",
+      "sizes": "Based on technical_requirements.optimization.responsive_sizes"
+    }
+  },
+  "api_configuration": {
+    "provider": "openai",
+    "model": "dall-e-3",
+    "default_params": {
+      "quality": "hd",
+      "style": "vivid"
+    },
+    "size_mapping": {
+      "1:1": "1024x1024",
+      "16:9": "1792x1024",
+      "9:16": "1024x1792"
+    },
+    "rate_limits": {
+      "requests_per_minute": 5,
+      "retry_delay_ms": 2000
+    }
+  }
+}
