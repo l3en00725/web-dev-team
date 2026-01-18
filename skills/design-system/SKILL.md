@@ -1,22 +1,45 @@
 ---
 name: design-system
-description: Translates visual inspiration (screenshots, Dribbble, uploads) into implementable design tokens, effect specifications, and brand assets. Use when starting a new site to establish visual direction before Builder implements.
-owner: Design/Imagery Agent (Gemini)
-trigger: After Site Kickoff, before Builder begins components
-llm: Gemini
+description: Extracts design systems from video references using the external Design Director Gem. Outputs layout-manifest.json (structure) and design-tokens.json (variables) for Builder to execute.
+owner: Design Director Gem (External)
+trigger: After Content Headlines, before Builder begins
+llm: Gemini (Web Interface)
 ---
 
-# Design System Skill
+# Design System Skill (External Workflow)
 
 ## Purpose
 
-Convert visual inspiration into structured outputs that Builder Agent can execute. Ensures consistent visual direction across the entire site.
+Extract high-fidelity design systems from video references. This skill runs **externally** in the Gemini Web Interface using the Design Director Gem, not inside Cursor.
+
+---
+
+## CRITICAL: This is an External Workflow
+
+> **The Design Director Gem runs in the Gemini Web Interface, NOT in Cursor.**
+> 
+> You will leave Cursor, go to Gemini, extract the design, and bring the outputs back.
+
+---
+
+## Dual Output Requirement
+
+The Gem outputs **TWO critical files**:
+
+| File | Purpose | Location |
+|------|---------|----------|
+| `layout-manifest.json` | **Structure** — Sections, layers, z-index, Tailwind classes | `src/data/layout-manifest.json` |
+| `design-tokens.json` | **Variables** — Colors, typography, spacing, animations | `src/data/design-tokens.json` |
+
+**Both files must be copied back to the repo before Builder can proceed.**
 
 ---
 
 ## Trigger
 
-After Site Kickoff completes, before Builder Agent begins component work.
+After Content Phase 1 (Headlines) completes, before Builder begins.
+
+**Why this order?** High-quality design is "content-led." The Gem needs the exact headlines to create layouts that fit the content. Generic layouts happen when design precedes content.
 
 ---
 
@@ -24,372 +47,156 @@ After Site Kickoff completes, before Builder Agent begins component work.
 
 - [ ] Site Kickoff completed
 - [ ] `strategy.md` from Architect (brand direction)
-- [ ] User-provided inspiration (screenshots, URLs, uploads)
-
----
-
-## Before Starting
-
-1. Confirm model is switched to Gemini
-2. ASK user for inspiration before generating anything:
-   - "Please share visual inspiration (screenshots, Dribbble links, or reference sites)"
-   - "What mood/feel do you want? (clean, playful, bold, minimal, etc.)"
-3. Do NOT proceed until inspiration is provided or user says "skip"
+- [ ] `site-structure.json` from Architect (page hierarchy)
+- [ ] `anchor-copy.md` from Content Phase 1 (headlines, CTAs)
 
 ---
 
 ## Workflow
 
-### Part 1: Inspiration Intake
+### Step 1: Find Inspiration
 
-#### Step 1: Collect Inspiration
+- [ ] Go to [Awwwards](https://www.awwwards.com/) to find a reference site
+- [ ] Browse Sites of the Day, Nominees, or Collections for inspiration
+- [ ] Pick a site that matches your desired vibe/aesthetic
 
-Accept inspiration in multiple formats:
+### Step 2: Record Video
 
-| Format | Example |
-|--------|---------|
-| Screenshot | Uploaded image file |
-| URL | Dribbble, Behance, live site |
-| Description | "Modern, minimal, tech-focused" |
-| Mood board | Collection of images |
+- [ ] Open the reference site in your browser
+- [ ] Record a 30-60 second screen capture showing:
+  - Hero section and initial viewport
+  - Scrolling behavior and animations
+  - Hover interactions on buttons/cards
+  - Key page sections
+- [ ] Save the video file
 
-#### Step 2: Analyze Visual Patterns
+### Step 3: Prepare Other Inputs
 
-Using Gemini, analyze inspiration for:
+- [ ] **Anchor Copy:** Have `anchor-copy.md` content ready (H1, H2, CTAs from Content Phase 1)
+- [ ] **Project Context:** Have `project-profile.json` context ready (site type, brand direction)
 
-- **Colors:** Primary, secondary, accent, neutral palettes
-- **Typography:** Font families, sizes, weights
-- **Spacing:** Density, whitespace patterns
-- **Effects:** Shadows, gradients, animations
-- **Mood:** Professional, playful, minimal, bold
+### Step 4: Open Design Director Gem
 
-#### Step 3: Document Inspiration
+- [ ] Go to [Gemini Web Interface](https://gemini.google.com)
+- [ ] Open the **"Design Director (Web Dev Team)"** Gem
 
-Store in `/references/inspiration/`:
+### Step 5: Upload & Extract
+
+Upload the reference video, then use this prompt:
 
 ```
-/references/
-  /inspiration/
-    - source-1.png
-    - source-2.png
-    - analysis.md
+Extract the design system for this content based on the video.
+
+ANCHOR COPY:
+[Paste contents of anchor-copy.md here]
+
+PROJECT CONTEXT:
+Site Type: [from project-profile.json]
+Brand Direction: [from strategy.md]
+Primary Goal: [from project-profile.json]
+
+OUTPUT:
+1. layout-manifest.json — Full structure with sections, layers, z-index, Tailwind classes
+2. design-tokens.json — Colors, typography, spacing, animations
+3. Asset prompts — Descriptions for any background images needed
+
+Match the schema in templates/layout-manifest.json.
 ```
 
-**analysis.md:**
+### Step 6: Copy Outputs Back to Cursor
 
-```markdown
-# Inspiration Analysis
+After the Gem responds:
 
-## Sources
-1. [Dribbble shot name](url) - Reason selected
-2. screenshot-1.png - Reason selected
+1. **Create `src/data/layout-manifest.json`**
+   - Copy the layout manifest JSON from the Gem's response
+   - Paste into `src/data/layout-manifest.json`
+   - Verify JSON is valid (no syntax errors)
 
-## Key Patterns Identified
+2. **Create `src/data/design-tokens.json`**
+   - Copy the design tokens JSON from the Gem's response
+   - Paste into `src/data/design-tokens.json`
+   - Verify JSON is valid
 
-### Color
-- Dark mode dominant
-- Blue accent (#3b82f6)
-- High contrast text
+3. **Generate/Download Assets**
+   - Review `asset_prompts` in the manifest
+   - Generate images using the prompts (in Gemini or other tool)
+   - Download to `/public/assets/`
 
-### Typography
-- Sans-serif headers (likely Inter or similar)
-- Clean, readable body text
-- Large hero text
+### Step 7: Verify Before Proceeding
 
-### Layout
-- Generous whitespace
-- Card-based components
-- Asymmetric grids
-
-### Effects
-- Subtle shadows
-- Smooth hover transitions
-- Gradient backgrounds
-```
+- [ ] `src/data/layout-manifest.json` exists and is valid JSON
+- [ ] `src/data/design-tokens.json` exists and is valid JSON
+- [ ] All assets referenced in manifest exist in `/public/assets/`
+- [ ] Asset filenames match exactly what's in the manifest
 
 ---
 
-### Part 2: Design Token Output
+## What the Gem Extracts
 
-#### Step 4: Generate design-tokens.json
+### From Video Analysis
+
+| Category | What's Extracted |
+|----------|------------------|
+| DOM Structure | Section hierarchy, container nesting |
+| Z-Index Layering | Background layers, content layers, overlays |
+| Motion Physics | Animation timing, easing, scroll behaviors |
+| Tailwind Classes | Exact utility classes for each element |
+| Color Palette | Hex values mapped to semantic names |
+| Typography | Font families, sizes, weights, line heights |
+| Spacing Patterns | Padding, margins, gaps |
+
+### Output: layout-manifest.json
 
 ```json
 {
-  "meta": {
-    "generatedAt": "2026-01-16T00:00:00Z",
-    "inspirationSources": ["dribbble-shot-1", "screenshot-1.png"],
-    "theme": "dark"
-  },
-  "colors": {
-    "primary": {
-      "50": "#eff6ff",
-      "100": "#dbeafe",
-      "200": "#bfdbfe",
-      "300": "#93c5fd",
-      "400": "#60a5fa",
-      "500": "#3b82f6",
-      "600": "#2563eb",
-      "700": "#1d4ed8",
-      "800": "#1e40af",
-      "900": "#1e3a8a",
-      "950": "#172554"
-    },
-    "secondary": {
-      "50": "#f8fafc",
-      "100": "#f1f5f9",
-      "200": "#e2e8f0",
-      "300": "#cbd5e1",
-      "400": "#94a3b8",
-      "500": "#64748b",
-      "600": "#475569",
-      "700": "#334155",
-      "800": "#1e293b",
-      "900": "#0f172a",
-      "950": "#020617"
-    },
-    "accent": {
-      "500": "#10b981",
-      "600": "#059669"
-    },
-    "semantic": {
-      "success": "#22c55e",
-      "warning": "#f59e0b",
-      "error": "#ef4444",
-      "info": "#3b82f6"
-    },
-    "background": {
-      "primary": "#0f172a",
-      "secondary": "#1e293b",
-      "tertiary": "#334155"
-    },
-    "text": {
-      "primary": "#f8fafc",
-      "secondary": "#94a3b8",
-      "muted": "#64748b"
+  "meta": { "generatedAt": "", "referenceVideo": "", "siteType": "" },
+  "design_dna": { "vibe": "", "font_recommendations": "" },
+  "tailwind_config": {
+    "extend": {
+      "colors": {},
+      "backgroundImage": {},
+      "animation": {},
+      "keyframes": {}
     }
   },
-  "typography": {
-    "fontFamilies": {
-      "heading": "'Inter', sans-serif",
-      "body": "'Inter', sans-serif",
-      "mono": "'JetBrains Mono', monospace"
-    },
-    "fontSizes": {
-      "xs": "0.75rem",
-      "sm": "0.875rem",
-      "base": "1rem",
-      "lg": "1.125rem",
-      "xl": "1.25rem",
-      "2xl": "1.5rem",
-      "3xl": "1.875rem",
-      "4xl": "2.25rem",
-      "5xl": "3rem",
-      "6xl": "3.75rem"
-    },
-    "fontWeights": {
-      "normal": 400,
-      "medium": 500,
-      "semibold": 600,
-      "bold": 700
-    },
-    "lineHeights": {
-      "none": 1,
-      "tight": 1.25,
-      "snug": 1.375,
-      "normal": 1.5,
-      "relaxed": 1.625,
-      "loose": 2
-    },
-    "letterSpacing": {
-      "tighter": "-0.05em",
-      "tight": "-0.025em",
-      "normal": "0em",
-      "wide": "0.025em",
-      "wider": "0.05em"
+  "sections": [
+    {
+      "id": "hero",
+      "type": "immersive_viewport",
+      "height": "h-screen",
+      "layout_engine": "absolute-layering",
+      "layers": [
+        { "z": 0, "type": "asset", "src": "hero-bg.webp", "classes": "..." },
+        { "z": 10, "type": "content", "classes": "..." }
+      ],
+      "content": {
+        "h1_classes": "text-8xl font-bold",
+        "cta_classes": "rounded-full bg-white px-8 py-4"
+      }
     }
-  },
-  "spacing": {
-    "base": "4px",
-    "scale": {
-      "0": "0",
-      "1": "0.25rem",
-      "2": "0.5rem",
-      "3": "0.75rem",
-      "4": "1rem",
-      "5": "1.25rem",
-      "6": "1.5rem",
-      "8": "2rem",
-      "10": "2.5rem",
-      "12": "3rem",
-      "16": "4rem",
-      "20": "5rem",
-      "24": "6rem"
-    }
-  },
-  "borderRadius": {
-    "none": "0",
-    "sm": "0.125rem",
-    "base": "0.25rem",
-    "md": "0.375rem",
-    "lg": "0.5rem",
-    "xl": "0.75rem",
-    "2xl": "1rem",
-    "3xl": "1.5rem",
-    "full": "9999px"
-  },
-  "shadows": {
-    "sm": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-    "base": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-    "md": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-    "lg": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-    "xl": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
-    "2xl": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
-    "inner": "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)"
-  },
-  "transitions": {
-    "fast": "150ms ease",
-    "base": "200ms ease",
-    "slow": "300ms ease",
-    "slower": "500ms ease"
-  },
-  "breakpoints": {
-    "sm": "640px",
-    "md": "768px",
-    "lg": "1024px",
-    "xl": "1280px",
-    "2xl": "1536px"
-  }
+  ],
+  "asset_prompts": []
 }
 ```
 
-#### Step 5: Generate effects.md
+### Output: design-tokens.json
 
-```markdown
-# Effects Specification
+Standard design tokens including:
+- Colors (primary, secondary, accent, semantic)
+- Typography (families, sizes, weights, line heights)
+- Spacing scale
+- Border radius
+- Shadows
+- Transitions
+- Breakpoints
 
-## Animation Library Recommendation
-
-**Recommended:** CSS-only with Astro View Transitions
-
-**Rationale:** Simple site with standard interactions. No need for heavy animation libraries.
+See `templates/design-tokens.json` for full schema.
 
 ---
 
-## Global Transitions
+## Logo Intake (Still Required)
 
-### Page Transitions
-- Type: Fade
-- Duration: 200ms
-- Easing: ease-out
-
-### Hover States
-- Duration: 150ms
-- Easing: ease
-
----
-
-## Component Effects
-
-### Buttons
-```css
-.button {
-  transition: all 150ms ease;
-}
-.button:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-.button:active {
-  transform: translateY(0);
-}
-```
-
-### Cards
-```css
-.card {
-  transition: all 200ms ease;
-}
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-}
-```
-
-### Links
-```css
-.link {
-  transition: color 150ms ease;
-}
-.link:hover {
-  color: var(--color-primary-400);
-}
-```
-
-### Form Inputs
-```css
-.input {
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-.input:focus {
-  border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px var(--color-primary-500 / 0.1);
-}
-```
-
----
-
-## Scroll Behaviors
-
-### Smooth Scroll
-```css
-html {
-  scroll-behavior: smooth;
-}
-```
-
-### Scroll Reveal (if needed)
-- Trigger: When element enters viewport
-- Animation: Fade up
-- Duration: 400ms
-- Stagger: 100ms between elements
-
----
-
-## Loading States
-
-### Skeleton
-- Background: var(--color-background-tertiary)
-- Animation: Shimmer (subtle pulse)
-- Duration: 1.5s infinite
-
-### Spinner
-- Size: 20px
-- Border: 2px
-- Color: var(--color-primary-500)
-- Animation: Rotate 360deg 0.8s linear infinite
-
----
-
-## Special Effects
-
-### Hero Section
-- Background: Gradient overlay on image
-- Optional: Subtle parallax on scroll
-
-### CTAs
-- Primary: Solid with hover lift
-- Secondary: Outline with fill on hover
-
-### Testimonials
-- Card style with quote marks
-- Optional: Subtle rotation on hover
-```
-
----
-
-### Part 3: Logo Intake
-
-#### Step 6: Collect Logo Files
+Logos are still collected during this phase:
 
 **Logo Requirements:**
 - SVG format preferred for scalability
@@ -404,55 +211,13 @@ html {
 | Light version | For dark backgrounds | Dark mode, dark sections |
 | Dark version | For light backgrounds | Light mode, light sections |
 
-**Intake Process:**
-
-1. User uploads logo files
-2. Check if SVG is available
-   - If yes: proceed with SVG
-   - If no: convert PNG via SVGcode (https://svgco.de) — free, runs in browser
-3. Collect all four variants
-4. Verify quality and scalability
-
-**Store in `/public/logos/`:**
-
-```
-/public/logos/
-  - logo-full.svg
-  - logo-icon.svg
-  - logo-full-light.svg
-  - logo-full-dark.svg
-  - logo-icon-light.svg
-  - logo-icon-dark.svg
-```
-
-#### Step 7: Reference Logos in Design Tokens
-
-Add logo paths to `design-tokens.json`:
-
-```json
-{
-  "logos": {
-    "full": {
-      "default": "/logos/logo-full.svg",
-      "light": "/logos/logo-full-light.svg",
-      "dark": "/logos/logo-full-dark.svg"
-    },
-    "icon": {
-      "default": "/logos/logo-icon.svg",
-      "light": "/logos/logo-icon-light.svg",
-      "dark": "/logos/logo-icon-dark.svg"
-    }
-  }
-}
-```
+**Store in `/public/logos/`**
 
 ---
 
-### Part 4: Brand Assets
+## Favicon Generation
 
-#### Step 8: Generate Favicon
-
-Create favicon in multiple sizes:
+Create favicon in multiple sizes from the icon-only logo:
 
 | Size | Use |
 |------|-----|
@@ -462,104 +227,42 @@ Create favicon in multiple sizes:
 | 192x192 | Android Chrome |
 | 512x512 | PWA splash |
 
-**Source:** Use the icon-only logo variant as the base for favicon generation.
-
-Store in `/public/`:
-
-```
-/public/
-  - favicon.ico
-  - favicon-16x16.png
-  - favicon-32x32.png
-  - apple-touch-icon.png
-  - android-chrome-192x192.png
-  - android-chrome-512x512.png
-  - site.webmanifest
-```
-
-**site.webmanifest:**
-
-```json
-{
-  "name": "Site Name",
-  "short_name": "Site",
-  "icons": [
-    {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/android-chrome-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a",
-  "display": "standalone"
-}
-```
-
-#### Step 9: Generate CSS Variables
-
-```css
-/* src/styles/tokens.css */
-:root {
-  /* Colors */
-  --color-primary-50: #eff6ff;
-  --color-primary-500: #3b82f6;
-  --color-primary-900: #1e3a8a;
-  
-  /* ... all color tokens */
-  
-  /* Typography */
-  --font-heading: 'Inter', sans-serif;
-  --font-body: 'Inter', sans-serif;
-  
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  /* ... all typography tokens */
-  
-  /* Spacing */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  /* ... all spacing tokens */
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  /* ... all shadow tokens */
-  
-  /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-base: 200ms ease;
-}
-```
+Store in `/public/`
 
 ---
 
 ## Hard Limits
 
-- **No implementation** — Builder Agent does that
-- **No inventing styles** without inspiration input
-- **Tokens must be complete** before Builder starts components
+- **External workflow only** — Gem runs in Gemini Web Interface, not Cursor
+- **Dual output required** — Both `layout-manifest.json` AND `design-tokens.json`
+- **Content-first** — Headlines must exist before design extraction
+- **Assets must be verified** — All referenced assets must exist before Builder starts
 - **Accessibility** — Color contrast must meet WCAG 2.1 AA (4.5:1)
-- **Logo files required before build** — SVG preferred, convert PNG via SVGcode (https://svgco.de) — free, runs in browser if needed
 
 ---
 
 ## Required Outputs
 
-| Output | Description |
-|--------|-------------|
-| `design-tokens.json` | Complete design system |
-| `effects.md` | Animation and effect specs |
-| `/references/inspiration/` | Stored inspiration sources |
-| Logo files in `/public/logos/` | SVG + all variants (full, icon, light, dark) |
-| Favicon set | All required sizes |
-| App icons | PWA manifest icons |
-| `tokens.css` | CSS variables |
+| Output | Location | Description |
+|--------|----------|-------------|
+| `layout-manifest.json` | `src/data/` | Page structure, layers, Tailwind classes |
+| `design-tokens.json` | `src/data/` | Colors, typography, spacing |
+| Assets | `/public/assets/` | Background images, textures |
+| Logo files | `/public/logos/` | SVG + all variants |
+| Favicon set | `/public/` | All required sizes |
+| App icons | `/public/` | PWA manifest icons |
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Gem outputs invalid JSON | Ask Gem to "fix the JSON syntax and output valid JSON only" |
+| Missing sections in manifest | Ask Gem to "add the [section name] section with layers and classes" |
+| Unclear layer structure | Ask Gem to "clarify the z-index layering for the hero section" |
+| Wrong Tailwind classes | Ask Gem to "use standard Tailwind v3 utility classes" |
+| Assets not generated | Use the `asset_prompts` to generate images manually |
 
 ---
 
@@ -567,14 +270,11 @@ Store in `/public/`:
 
 Design System Skill is complete when:
 
-- [ ] Inspiration collected and analyzed
-- [ ] Logo files collected (SVG + all variants)
-- [ ] Logos stored in `/public/logos/`
-- [ ] Logo paths added to `design-tokens.json`
-- [ ] `design-tokens.json` is comprehensive
-- [ ] `effects.md` specifies all interactions
-- [ ] Color contrast meets accessibility standards
-- [ ] Favicon in all required sizes (generated from logo icon)
+- [ ] `src/data/layout-manifest.json` exists and is valid
+- [ ] `src/data/design-tokens.json` exists and is valid
+- [ ] All assets referenced in manifest exist in `/public/assets/`
+- [ ] Logo files collected (SVG + all variants) in `/public/logos/`
+- [ ] Favicon in all required sizes
 - [ ] App icons for PWA
-- [ ] CSS variables generated
+- [ ] Color contrast meets accessibility standards
 - [ ] Builder Agent can implement without questions
