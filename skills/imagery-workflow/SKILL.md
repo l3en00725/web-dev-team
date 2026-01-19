@@ -547,6 +547,63 @@ export async function adjustColorsToTokens(
 
 ---
 
+## Part 4B: Manual Refinement (Canva AI)
+
+### When to Use Canva AI
+
+Canva AI is recommended for manual refinement when automated post-processing needs improvement:
+
+- **Background removal refinement** — If automated removal (rembg/remove.bg) leaves artifacts or white fringing
+- **Edge cleanup** — Manual edge refinement for transparent images
+- **Color correction** — Precise color matching to design tokens (exact hex code accuracy)
+- **Logo work** — Background removal, color adjustments, edge cleanup, variant generation
+- **Image tweaks** — Brightness, contrast, saturation adjustments
+- **Unwanted element removal** — Remove artifacts or unwanted elements
+- **Final polish** — Any refinements needed before optimization
+
+### Workflow
+
+1. Generate images via DALL-E 3 (or other source)
+2. Run automated background removal (if needed)
+3. **Review edges and quality**
+4. **If issues found → Use Canva AI for refinement:**
+   - Upload image to Canva
+   - Use "Remove background" tool for background refinement
+   - Use "Magic Eraser" for edge cleanup and artifact removal
+   - Use color adjustment tools to match exact hex codes from design tokens
+   - Adjust brightness, contrast, saturation as needed
+   - Remove any unwanted elements
+   - Export as PNG (for transparency) or WebP (for final images)
+5. Verify final image quality (test on both light and dark backgrounds if transparent)
+6. Replace processed image
+7. Proceed to optimization
+
+### For Logos Specifically
+
+**During Design Tokens Phase (Phase 3) or Imagery Phase (Phase 4):**
+
+If logos need processing or refinement:
+
+1. Upload logo to Canva
+2. Remove background (if needed) using "Remove background" tool
+3. Adjust colors to match brand palette (exact hex codes from design tokens)
+4. Clean edges with "Magic Eraser" if needed
+5. Export variants:
+   - `/public/logos/logo-full.svg` (if vector possible)
+   - `/public/logos/logo-full.png` (with transparency if needed)
+   - `/public/logos/logo-icon.png` (icon variant)
+   - `/public/logos/logo-full-light.png` (for dark backgrounds)
+   - `/public/logos/logo-full-dark.png` (for light backgrounds)
+6. Verify all variants are in correct folders and properly named
+
+**Canva AI Tools for Logos:**
+- "Remove background" — Clean background removal
+- "Magic Eraser" — Edge cleanup and artifact removal
+- Color adjustment tools — Match exact brand hex codes
+- Export options — PNG with transparency, or SVG if possible
+
+---
+
 ## Part 5: Optimization
 
 ### Step 5.1: Compress Images

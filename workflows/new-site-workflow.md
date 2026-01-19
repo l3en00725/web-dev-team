@@ -307,6 +307,7 @@ Create:
 - [ ] Layouts implemented
 - [ ] Components built
 - [ ] Routes configured
+- [ ] **Logo in header/navigation links to homepage** (`<a href="/" aria-label="Home">` around logo)
 
 ### Step 5.4: Location Pages (if Local SEO)
 
@@ -398,16 +399,30 @@ Create:
 
 **Gate:** User approves images (or marks for regeneration)
 
-### Step 6.4: Post-Processing
+### Step 6.4: Post-Processing & Refinement
 
 **Skill:** Imagery Workflow  
 **Owner:** Design/Imagery Agent
 
-- [ ] Background removal for transparent images (icons, illustrations)
-- [ ] Edge verification (no white fringing)
-- [ ] Color correction to match design tokens (if needed)
-- [ ] Optimization to meet size thresholds
+**Automated processing:**
+- [ ] Background removal for transparent images (icons, illustrations) — rembg or remove.bg API
+- [ ] Initial optimization to meet size thresholds
 - [ ] Responsive variants generated
+
+**Manual refinement (Canva AI — if needed):**
+- [ ] Review automated results for quality issues
+- [ ] If issues found (white fringing, color drift, edge artifacts):
+  - Use Canva AI "Remove background" tool for refinement
+  - Use "Magic Eraser" for edge cleanup
+  - Use color adjustment tools to match exact hex codes from design tokens
+  - Export refined images (PNG for transparency, WebP for final)
+- [ ] Replace processed images
+- [ ] Verify quality again (test transparent images on both light and dark backgrounds)
+
+**For logos (if needed during this phase):**
+- [ ] Use Canva AI for logo processing (background removal, color adjustment, edge cleanup)
+- [ ] Export logo variants to `/public/logos/`
+- [ ] Verify all logo variants exist and are properly named
 
 **Gate:** All images pass quality checks
 

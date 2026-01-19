@@ -340,17 +340,33 @@ Wait for approval before image generation.
 - 🔄 Regenerate → provide feedback for new prompt
 - ❌ Skip → use alternative
 
-### Step 4.5: Post-Processing
+### Step 4.5: Post-Processing & Refinement
 
-**For images requiring transparency:**
-1. Run background removal (rembg or remove.bg)
-2. Verify edges are clean (no white fringing)
-3. Test on both light and dark backgrounds
+**Automated processing:**
+1. Run background removal (rembg or remove.bg API) for transparent images
+2. Initial optimization and compression
+3. Generate responsive variants
+
+**Manual refinement (Canva AI — if needed):**
+1. Review automated results
+2. If artifacts or issues found (white fringing, color drift, edge issues):
+   - Use Canva AI for refinement
+   - "Remove background" tool for background refinement
+   - "Magic Eraser" for edge cleanup
+   - Color adjustment tools to match exact hex codes
+   - Export refined images (PNG for transparency, WebP for final)
+3. Replace processed images
+4. Verify quality again
+
+**For logos specifically:**
+- Use Canva AI if logos need background removal, color adjustment, or edge cleanup
+- Export variants to `/public/logos/`
+- See `/docs/prompt-library.md` prompt #11 for detailed workflow
 
 **For all images:**
-1. Optimize file size (under thresholds)
-2. Generate responsive variants
-3. Move to final folders (`/assets/images/optimized/{type}/`)
+1. Verify final quality (test transparent images on both light and dark backgrounds)
+2. Move to final folders (`/assets/images/optimized/{type}/`)
+3. Verify all meet size thresholds
 
 **File naming:** `{type}-{identifier}.{ext}`
 - `hero-home.webp`

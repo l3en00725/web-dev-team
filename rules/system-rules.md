@@ -265,6 +265,57 @@ Requires:
 
 ---
 
+## Rule 9: Logo Must Link to Homepage
+
+**Gate Type:** UX Standard  
+**Enforced By:** Builder Agent  
+**Consequence:** Site non-compliant with standard UX patterns
+
+### Description
+Every logo in the header or navigation must be clickable and link to the homepage. This is a universal UX pattern that users expect.
+
+### Why
+- **Universal expectation** — Users expect logo to be a "home" button
+- **Accessibility** — Provides clear navigation path to homepage
+- **Professional standard** — Expected behavior on all professional sites
+- **User experience** — Quick way to return to homepage from any page
+
+### Enforcement
+- Builder Agent must implement logo as link to `/`
+- Logo link must include `aria-label="Home"` for accessibility
+- Applies to all header/navigation logos (full logo, icon-only, mobile nav, desktop nav, sticky nav)
+- QA verification checks logo links to homepage
+
+### Implementation
+
+```astro
+<!-- Standard Header Logo -->
+<header>
+  <nav>
+    <a href="/" aria-label="Home">
+      <img src="/logos/logo-full.svg" alt="Site Name" />
+    </a>
+  </nav>
+</header>
+
+<!-- Icon-Only Logo -->
+<a href="/" aria-label="Home">
+  <img src="/logos/logo-icon.svg" alt="Site Name" class="h-8 w-8" />
+</a>
+
+<!-- Mobile Navigation Logo -->
+<nav class="mobile-nav">
+  <a href="/" aria-label="Home">
+    <img src="/logos/logo-icon.svg" alt="Site Name" />
+  </a>
+</nav>
+```
+
+### Override
+Not allowed. Logo linking to homepage is a standard UX requirement.
+
+---
+
 ## Override Documentation Template
 
 When any rule requires an override:

@@ -410,6 +410,92 @@ Once all images pass:
 
 ---
 
+## 10. Manual Image Refinement Prompt (Canva AI)
+
+**LLM:** Claude (Orchestrator)  
+**When:** After automated post-processing in Phase 4.5, if quality issues found  
+**Purpose:** Guide manual refinement using Canva AI
+
+```
+Post-processing complete — Review Required
+
+Automated background removal and optimization complete.
+
+For each image, review:
+
+TRANSPARENT IMAGES (icons, illustrations):
+- [ ] Background fully removed (no white fringing)
+- [ ] Edges are clean and anti-aliased
+- [ ] Works on both light AND dark backgrounds
+- [ ] Alpha channel properly set
+
+ALL IMAGES:
+- [ ] Colors match design tokens (exact hex codes)
+- [ ] No unwanted elements or artifacts
+- [ ] Brightness/contrast appropriate
+- [ ] No color drift from brand palette
+
+IF ANY ISSUES FOUND:
+→ Use Canva AI for manual refinement
+
+Canva AI Tools to Use:
+1. "Remove background" — For background removal refinement
+2. "Magic Eraser" — For edge cleanup and artifact removal
+3. Color adjustment tools — Match exact hex codes from design tokens
+4. Image adjustment — Brightness, contrast, saturation
+5. Unwanted element removal — Remove artifacts or unwanted elements
+
+After Canva refinement:
+- Export as PNG (for transparency) or WebP (for final images)
+- Replace the processed image
+- Verify quality again (test transparent images on both light and dark backgrounds)
+- Proceed to optimization
+
+Confirm when all images pass quality checks.
+```
+
+---
+
+## 11. Logo Processing Prompt (Canva AI)
+
+**LLM:** Claude (Orchestrator)  
+**When:** During Design Tokens Phase (Phase 3) or Imagery Phase (Phase 4)  
+**Purpose:** Guide logo processing using Canva AI
+
+```
+Logo processing needed for [Project Name].
+
+Check logo files in /public/logos/:
+
+For each logo variant needed:
+- [ ] Background removed (if needed) — Use Canva AI
+- [ ] Colors match brand palette — Use Canva AI color adjustment
+- [ ] Edges are clean — Use Canva AI edge cleanup
+- [ ] Exported in correct format (PNG with transparency or SVG)
+
+Canva AI workflow for logos:
+1. Upload logo to Canva
+2. Use "Remove background" tool (if background removal needed)
+3. Adjust colors to match brand tokens (exact hex codes from design-tokens.json)
+4. Clean edges with "Magic Eraser" if needed
+5. Export variants:
+   - /public/logos/logo-full.svg (if vector possible)
+   - /public/logos/logo-full.png (with transparency if needed)
+   - /public/logos/logo-icon.png (icon variant)
+   - /public/logos/logo-full-light.png (for dark backgrounds)
+   - /public/logos/logo-full-dark.png (for light backgrounds)
+
+Critical: Logo in header/navigation MUST link to homepage.
+When Builder implements navigation, ensure logo is wrapped in:
+<a href="/" aria-label="Home">
+  <img src="/logos/logo-full.svg" alt="Site Name" />
+</a>
+
+Confirm when logo processing is complete.
+```
+
+---
+
 ## Workflow Sequence
 
 ### Phase 0: Repository Verification
@@ -433,8 +519,10 @@ Once all images pass:
 4. Review and approve prompts
 5. Generate images via OpenAI API
 6. Use **Image Review Prompt** (#8) to review generated images
-7. Run post-processing (background removal, optimization)
+7. Run automated post-processing (background removal, optimization)
 8. Use **Post-Processing Verification Prompt** (#9) to verify quality
+9. If issues found: Use **Manual Image Refinement Prompt** (#10) with Canva AI
+10. For logos: Use **Logo Processing Prompt** (#11) with Canva AI if needed
 
 ### Phase 5: Build
 → Use **Builder Handoff Prompt** (#5) in Cursor
@@ -473,10 +561,13 @@ Once all images pass:
 | 7 | Image Prompt Generation | Claude | Any | 4.3 | DALL-E 3 prompts |
 | 8 | Image Review | Claude | Any | 4.4 | Approval/feedback |
 | 9 | Post-Processing Verify | Claude | Any | 4.5 | Quality check |
+| 10 | Manual Image Refinement (Canva AI) | Claude | Any | 4.5 | Refinement guidance |
+| 11 | Logo Processing (Canva AI) | Claude | Any | 3 or 4 | Logo refinement |
 
 ---
 
 ## Version History
 
+- **v1.2** — 2026-01-18 — Added Canva AI prompts (#10-11) for manual refinement and logo processing
 - **v1.1** — 2026-01-18 — Added image generation prompts (#6-9) for Phase 4
 - **v1.0** — 2026-01-17 — Initial prompt library with enhanced prompts

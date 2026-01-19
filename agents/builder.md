@@ -103,7 +103,45 @@ Scan the `layers` array in `layout-manifest.json`. For each layer with `type: "a
 </div>
 ```
 
-### Rule 3: Config Before Build
+### Rule 3: Logo Always Links to Homepage
+
+**Logo in header/navigation MUST link to homepage.**
+
+Every logo in the header or navigation must be wrapped in a link to the homepage:
+
+```astro
+<!-- Header Logo -->
+<header>
+  <nav>
+    <a href="/" aria-label="Home">
+      <img src="/logos/logo-full.svg" alt="Site Name" />
+    </a>
+  </nav>
+</header>
+
+<!-- Icon-Only Logo -->
+<a href="/" aria-label="Home">
+  <img src="/logos/logo-icon.svg" alt="Site Name" class="h-8 w-8" />
+</a>
+
+<!-- Mobile Navigation Logo -->
+<nav class="mobile-nav">
+  <a href="/" aria-label="Home">
+    <img src="/logos/logo-icon.svg" alt="Site Name" />
+  </a>
+</nav>
+```
+
+**Requirements:**
+- Logo must be clickable (wrapped in `<a>` tag)
+- Link must point to `/` (homepage)
+- Must include `aria-label="Home"` for accessibility
+- Applies to all logos in header/navigation (mobile nav, desktop nav, sticky nav)
+- Applies to both full logo and icon-only logo variants
+
+**This is a universal UX pattern and must be implemented on every site.**
+
+### Rule 4: Config Before Build
 
 **Apply Tailwind config FIRST, then build components.**
 
@@ -155,6 +193,7 @@ export default {
 - Change URL slugs after Architect defines them
 - **Deviate from `layout-manifest.json` structure**
 - **Ignore missing assets (must create placeholders)**
+- **Implement logo in header/navigation without homepage link**
 
 ---
 
@@ -231,6 +270,7 @@ When starting a build, follow this order:
 - [ ] Implement sections per `layout-manifest.json`
 - [ ] Follow layer structure exactly
 - [ ] Apply Tailwind classes from manifest
+- [ ] **Logo in header/navigation links to homepage** (`<a href="/">` around logo)
 
 ### Step 5: Verify Build
 - [ ] `npm run build` passes
@@ -291,6 +331,7 @@ Builder Agent work is complete when:
 - [ ] **Layout matches `layout-manifest.json` exactly**
 - [ ] **All assets verified or placeholders created**
 - [ ] **Tailwind config includes manifest extensions**
+- [ ] **Logo in header/navigation links to homepage**
 - [ ] Design tokens applied consistently
 - [ ] SEO metadata on all pages
 - [ ] Forms submit successfully
