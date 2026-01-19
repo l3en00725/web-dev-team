@@ -48,7 +48,7 @@ The Orchestrator is a **PROMPT ROUTER**, not an executor.
 | 3. Design Tokens | Design/Imagery | Gemini | design-tokens.json, effects.md |
 | **3A. Design Inspiration Review** | Design/Imagery | **Gemini (OUTSIDE Cursor)** | design-analysis.md reviewed and saved |
 | **4. Imagery** | Design/Imagery | **Claude + OpenAI API** | image-prompts.json, /assets/images/ populated, image-manifest.json |
-| **5. Build** | Builder | Cursor Auto | All pages built, **GEO schema verified (if local SEO), structured data present, mobile optimization verified** |
+| **5. Build** | Builder | Cursor Auto | All pages built, **GEO schema verified (if local SEO), structured data present, mobile optimization verified, icon system verified, OG images verified (@vercel/og installed)** |
 | **6. Content** | Content | Claude | All content written, **AI/LLM optimization verified (freshness, Q&A format, llms.txt)** |
 | 5. Build | Builder | Cursor Auto | All pages created, components working |
 | 6. Content | Content | Claude | All page copy written |
@@ -426,7 +426,7 @@ Then provide:
 
 ## Hard Gate Enforcement: GEO Schema & AI/LLM Requirements
 
-### Phase 5 (Build) — GEO Schema & Mobile Optimization Gates (FORCEFULLY ENFORCED)
+### Phase 5 (Build) — GEO Schema, Mobile Optimization, Icon System & OG Image Gates (FORCEFULLY ENFORCED)
 
 **Before Phase 5 can complete, Orchestrator MUST verify:**
 
@@ -521,6 +521,37 @@ If ANY check fails:
 **Design Behavior Directive:**
 "Default to Lucide SVG icons whenever an icon is needed. Select icons that best represent the intent of the section. Prioritize clarity, consistency, and restraint."
 
+#### Open Graph (OG) Image Gate (FORCEFULLY ENFORCED FOR ALL SITES):
+
+```
+🚫 HARD GATE — Cannot proceed to Content phase without Open Graph verification
+
+Required checks:
+1. ✅ @vercel/og package installed (check package.json)
+2. ✅ /api/og endpoint exists and is functional
+3. ✅ OG meta tags present on all public pages (og:image, og:title, og:description, og:type)
+4. ✅ OG images are 1200x630 dimensions (verify via endpoint or meta tags)
+5. ✅ OG image URLs are valid and accessible
+6. ✅ Twitter Card meta tags present (twitter:card, twitter:image)
+7. ✅ All pages have unique OG images (not using default/placeholder)
+
+Verification:
+- Check package.json for "@vercel/og" dependency
+- Verify /api/og endpoint exists (src/pages/api/og.ts or similar)
+- Check SEO component or layout for OG meta tags
+- Test OG image endpoint returns valid image (1200x630)
+- Verify OG meta tags in page source (og:image, og:title, og:description)
+- Check Twitter Card meta tags are present
+- Verify OG images are unique per page (not all using same default)
+
+If ANY check fails:
+→ STOP — Builder must install @vercel/og and configure OG images before proceeding
+→ Provide exact instructions: "Install @vercel/og. Create /api/og endpoint. Add OG meta tags to all pages. Verify 1200x630 dimensions."
+```
+
+**Critical Installation Step:**
+**The Orchestrator MUST verify @vercel/og is installed EVERY TIME before Build phase completes.**
+
 **Gate Message:**
 ```
 Phase 5 (Build) Gate Check:
@@ -555,9 +586,18 @@ Icon System Verification (MANDATORY):
 - [ ] Icons use standard sizes (24px inline, 28-32px features)
 - [ ] Icon usage documented in /imagery/icons.md (if exceptions exist)
 
+Open Graph (OG) Image Verification (MANDATORY):
+- [ ] @vercel/og package installed (package.json verified)
+- [ ] /api/og endpoint exists and functional
+- [ ] OG meta tags present on all pages (og:image, og:title, og:description, og:type)
+- [ ] OG images are 1200x630 dimensions
+- [ ] OG image URLs are valid and accessible
+- [ ] Twitter Card meta tags present (twitter:card, twitter:image)
+- [ ] All pages have unique OG images (not using default/placeholder)
+
 Status: [PASS / FAIL]
 
-If FAIL: Cannot proceed. Fix missing schema, mobile optimization, or icon system issues before advancing.
+If FAIL: Cannot proceed. Fix missing schema, mobile optimization, icon system, or OG image issues before advancing.
 ```
 
 ---

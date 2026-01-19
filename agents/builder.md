@@ -305,6 +305,73 @@ export default {
 }
 ```
 
+### Rule 7: Open Graph Images (MANDATORY — @vercel/og Required)
+
+**Open Graph images are REQUIRED for all public pages before Build phase can complete.**
+
+**Installation (MANDATORY FIRST STEP):**
+
+1. **Verify @vercel/og is installed:**
+   ```bash
+   npm list @vercel/og
+   ```
+
+2. **If NOT installed, install immediately:**
+   ```bash
+   npm install @vercel/og
+   ```
+
+3. **Confirm installation in package.json:**
+   - Check `package.json` contains `"@vercel/og": "^X.X.X"` in dependencies
+   - If missing, installation failed — retry installation
+
+**Implementation Requirements:**
+
+1. **Create /api/og endpoint:**
+   - Location: `src/pages/api/og.ts` (or appropriate API route location)
+   - Must use `@vercel/og` ImageResponse
+   - Must generate 1200x630 images
+   - Must accept dynamic parameters (title, description, type)
+
+2. **Add OG meta tags to all pages:**
+   - `og:image` — Points to OG image endpoint with page-specific params
+   - `og:title` — Page title
+   - `og:description` — Page description
+   - `og:type` — Page type (website, article, etc.)
+   - `og:image:width` — 1200
+   - `og:image:height` — 630
+   - `twitter:card` — summary_large_image
+   - `twitter:image` — Same as og:image
+
+3. **Verify OG images are unique per page:**
+   - Each page must have unique OG image (not all using same default)
+   - Use page-specific title/description in OG image generation
+   - Test OG image endpoint returns valid 1200x630 image
+
+4. **Apply design tokens to OG images:**
+   - Use colors from `design-tokens.json`
+   - Use fonts from `design-tokens.json`
+   - Match site branding in OG image design
+
+**Verification Checklist:**
+- [ ] @vercel/og installed (package.json verified)
+- [ ] /api/og endpoint exists and functional
+- [ ] OG meta tags present on all public pages
+- [ ] OG images are 1200x630 dimensions
+- [ ] OG image URLs are valid and accessible
+- [ ] Twitter Card meta tags present
+- [ ] All pages have unique OG images
+- [ ] Design tokens applied to OG images
+
+**If ANY check fails:**
+→ STOP — Cannot advance to Content phase without proper OG image setup
+→ Install @vercel/og if missing
+→ Create /api/og endpoint
+→ Add OG meta tags to all pages
+→ Verify 1200x630 dimensions
+
+**This is mandatory for social sharing and SEO. Every public page MUST have OG images.**
+
 ---
 
 ## Hard Limits
@@ -319,6 +386,8 @@ export default {
 - **Deviate from `layout-manifest.json` structure**
 - **Ignore missing assets (must create placeholders)**
 - **Implement logo in header/navigation without homepage link**
+- **Skip @vercel/og installation (MANDATORY for all sites)**
+- **Deploy pages without OG images (MANDATORY for all public pages)**
 
 ---
 
