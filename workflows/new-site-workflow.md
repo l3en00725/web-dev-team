@@ -284,6 +284,32 @@ Create:
 
 **Agent:** Builder Agent (Cursor Auto)
 
+**GEO Schema Requirements (for Local SEO sites — MANDATORY):**
+
+Before Build phase can complete (if distribution strategy = "local-seo" or "multi-state-national"):
+
+1. **LocalBusiness Schema:**
+   - [ ] Present on homepage (if applicable)
+   - [ ] Includes GeoCoordinates (lat/lng)
+   - [ ] Includes service area (GeoCircle or areaServed)
+
+2. **Place Schema:**
+   - [ ] Present on all location pages
+   - [ ] Includes GeoCoordinates
+   - [ ] Includes service area if applicable
+
+3. **Enhanced Schema:**
+   - [ ] GeoCircle for service boundaries
+   - [ ] City list in areaServed (if applicable)
+
+**Gate Check (Orchestrator enforces):**
+- [ ] LocalBusiness schema verified (if local SEO)
+- [ ] Place schema verified (if location pages)
+- [ ] GeoCoordinates present
+- [ ] Service area defined
+
+**Cannot proceed to Content phase without GEO schema verification (for local SEO sites).**
+
 - [ ] Astro project initialized
 - [ ] Dependencies installed
 - [ ] File structure created
@@ -490,6 +516,38 @@ Create:
 
 **Agent:** Content Agent (Claude)
 
+**AI/LLM Optimization Requirements (MANDATORY):**
+
+Before Content phase can complete:
+
+1. **llms.txt File:**
+   - [ ] Create `/public/llms.txt`
+   - [ ] List main content pages
+   - [ ] Include sitemap reference
+
+2. **Content Freshness:**
+   - [ ] All content has `datePublished` in frontmatter
+   - [ ] All content has `dateModified` in frontmatter
+   - [ ] Update `dateModified` when content changes
+
+3. **Question-Answer Format:**
+   - [ ] FAQ sections use H2 for questions
+   - [ ] Tutorials use HowTo schema
+   - [ ] Problem-solving content follows Q&A pattern
+
+4. **Author Attribution:**
+   - [ ] All blog posts have author with Person schema
+   - [ ] Author credentials included (for YMYL topics)
+
+**Gate Check (Orchestrator enforces):**
+- [ ] llms.txt exists
+- [ ] All content has lastUpdated dates
+- [ ] Question-answer format verified
+- [ ] FAQ/HowTo schema present
+- [ ] Author attribution complete
+
+**Cannot proceed to QA phase without these checks passing.**
+
 - [ ] All pages have content matching schema
 - [ ] Keywords naturally integrated
 - [ ] Heading hierarchy correct
@@ -525,6 +583,37 @@ Create:
 
 **Skill:** Admin Dashboard  
 **Owner:** Admin/QA Agent (Claude)
+
+### Step 8.2: Bing Webmaster Tools & IndexNow Setup (REQUIRED for AI/LLM Visibility)
+
+**Purpose:** Ensure site is indexed by Bing (used by many LLM-powered search tools)
+
+**Owner:** Admin/QA Agent (Claude)
+
+**Process:**
+
+1. **Bing Webmaster Tools Setup:**
+   - [ ] Create Bing Webmaster Tools account
+   - [ ] Add and verify site
+   - [ ] Submit sitemap.xml
+   - [ ] Configure IndexNow endpoint (optional but recommended)
+
+2. **IndexNow Configuration (Optional):**
+   - [ ] Generate IndexNow API key
+   - [ ] Configure endpoint: `https://api.indexnow.org/IndexNow`
+   - [ ] Add to build process (notify on content updates)
+
+3. **Verification:**
+   - [ ] Confirm site appears in Bing Webmaster Tools
+   - [ ] Verify sitemap is processed
+   - [ ] Test IndexNow endpoint (if configured)
+
+**Gate:** Site verified in Bing Webmaster Tools, sitemap submitted
+
+**Why this matters:**
+- Many LLM-powered search tools use Bing's index
+- IndexNow speeds up indexing of new/updated content
+- Required for AI Overview visibility
 
 - [ ] Admin routes configured
 - [ ] Auth protecting admin

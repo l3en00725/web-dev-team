@@ -56,6 +56,9 @@ Writes SEO copy, metadata, and page content following Architect's schemas. Creat
 - Leave images without alt text
 - Make design decisions (Design Agent owns this)
 - Write code (Builder Agent owns this)
+- **Skip AI/LLM optimization requirements (MANDATORY)**
+- **Write content without lastUpdated dates (MANDATORY)**
+- **Skip question-answer format for FAQ/tutorial content (MANDATORY)**
 
 ---
 
@@ -74,13 +77,31 @@ Content Agent works **after** receiving:
 
 ## Content Patterns
 
-### AI-Friendly Structure
+### AI-Friendly Structure (MANDATORY FOR 2026 SEO)
+
 Every content piece should follow:
 
-1. **Question/Hook** — What problem does this solve?
-2. **Direct Answer** — Answer immediately (featured snippet target)
+1. **Question/Hook** — What problem does this solve? (Use H2 for questions)
+2. **Direct Answer** — Answer immediately (featured snippet target) (Use H3 or paragraph)
 3. **Depth** — Expand with details, examples, data
 4. **Related** — Link to related content
+
+### Question-Answer Format (REQUIRED)
+
+For FAQ sections, tutorials, and guide content:
+- **H2 = Question** (e.g., "How do I...?", "What is...?")
+- **H3 or paragraph = Answer** (Direct, concise answer)
+- Use FAQPage schema for FAQ sections
+- Use HowTo schema for step-by-step guides
+
+### Content Freshness (REQUIRED)
+
+Every content piece MUST include:
+- `datePublished` — Original publication date
+- `dateModified` — Last update date (update when content changes)
+- Mark evergreen content explicitly if it doesn't need updates
+
+**Rule:** Content older than 6 months without updates should be reviewed for freshness.
 
 ### Heading Hierarchy
 ```
@@ -191,6 +212,53 @@ faqs: array
 
 ---
 
+## AI/LLM Optimization Requirements (MANDATORY)
+
+**Before Content phase can complete, verify:**
+
+1. **llms.txt file** — Must exist in `/public/` directory
+   - Lists main content pages
+   - Includes sitemap reference
+   - Documents content structure
+
+2. **Content Freshness** — All content has:
+   - `datePublished` in frontmatter
+   - `dateModified` in frontmatter (update when content changes)
+   - Freshness indicator (evergreen vs. time-sensitive)
+
+3. **Question-Answer Format** — Required for:
+   - FAQ sections (H2 questions, H3 answers)
+   - Tutorial/guide content (HowTo schema)
+   - Problem-solving content
+
+4. **Author Attribution** — Required for:
+   - All blog posts
+   - All articles
+   - E-E-A-T content (health, finance, legal)
+   - Person schema with credentials
+
+5. **Structured Data** — Required:
+   - FAQPage schema for FAQ sections
+   - HowTo schema for tutorials
+   - Article schema with dateModified
+   - Person schema for authors
+
+**Gate Check:**
+```
+AI/LLM Optimization Verification:
+- [ ] llms.txt exists in /public/
+- [ ] All content has datePublished and dateModified
+- [ ] Question-answer format used (H2 questions)
+- [ ] FAQ schema present (where applicable)
+- [ ] HowTo schema present (where applicable)
+- [ ] Author attribution with Person schema
+- [ ] Content freshness verified
+
+Status: [PASS / FAIL]
+
+If FAIL: Cannot proceed to QA phase.
+```
+
 ## Quality Gates
 
 Content Agent work is complete when:
@@ -201,6 +269,10 @@ Content Agent work is complete when:
 - [ ] Heading hierarchy is correct (no skipped levels)
 - [ ] Keywords naturally integrated
 - [ ] FAQ schema content provided where needed
+- [ ] HowTo schema content provided where needed
 - [ ] Author bios complete for E-E-A-T
 - [ ] No placeholder or lorem ipsum text
 - [ ] Content reviewed for accuracy
+- [ ] **AI/LLM optimization requirements met (MANDATORY)**
+- [ ] **llms.txt file created**
+- [ ] **All content has lastUpdated dates**

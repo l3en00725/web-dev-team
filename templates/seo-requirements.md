@@ -25,6 +25,7 @@ This document defines SEO requirements for all page types. Builder Agent impleme
 - [ ] Twitter Card tags
 - [ ] At least one schema type
 - [ ] BreadcrumbList schema
+- [ ] **DateModified field in frontmatter/metadata (MANDATORY for AI/LLM indexing)**
 
 ### Image Requirements
 
@@ -390,3 +391,139 @@ Contact {site name} for {service}. {Contact methods}. {Response time or CTA}.
 - [ ] HTTPS enabled
 - [ ] No mixed content
 - [ ] Security headers configured
+
+---
+
+## AI/LLM Optimization Requirements (2026 MANDATORY)
+
+### Content Structure for AI Indexing
+
+**Question-Answer Format (REQUIRED):**
+- Use H2 headings for questions (e.g., "How do I...?", "What is...?")
+- Use H3 or paragraphs for direct answers
+- Apply to FAQ sections, tutorials, and problem-solving content
+- Use FAQPage schema for FAQ sections
+- Use HowTo schema for step-by-step guides
+
+**Content Freshness (REQUIRED):**
+- Every page must have `datePublished` in frontmatter
+- Every page must have `dateModified` in frontmatter
+- Update `dateModified` when content changes
+- Mark evergreen content explicitly
+- Review content older than 6 months for freshness
+
+**Author Attribution (REQUIRED for E-E-A-T):**
+- All blog posts must have author with Person schema
+- Author must include credentials (for YMYL topics)
+- Author bio must be linked from content
+- Person schema must include jobTitle, description, sameAs
+
+### Structured Data for AI/LLM
+
+**Required Schemas:**
+- [ ] FAQPage schema (for FAQ sections)
+- [ ] HowTo schema (for tutorials/guides)
+- [ ] Article schema with dateModified (for blog posts)
+- [ ] Person schema (for authors)
+- [ ] Review/AggregateRating schema (if applicable)
+
+**GEO Schema (for Local SEO sites):**
+- [ ] Place schema on location pages
+- [ ] GeoCircle for service areas
+- [ ] Enhanced LocalBusiness with areaServed
+- [ ] GeoCoordinates with lat/lng
+
+### Technical Requirements
+
+**llms.txt File (REQUIRED):**
+- [ ] Create `/public/llms.txt` file
+- [ ] List main content pages
+- [ ] Include sitemap reference
+- [ ] Document content structure
+
+**Bing/IndexNow (RECOMMENDED):**
+- [ ] Bing Webmaster Tools configured
+- [ ] sitemap.xml submitted to Bing
+- [ ] IndexNow endpoint configured (optional)
+
+**Server-Side Rendering:**
+- [ ] All critical content server-rendered (not client-only)
+- [ ] Content visible without JavaScript
+- [ ] Semantic HTML structure
+
+---
+
+## GEO Schema Requirements (Local SEO Sites)
+
+### LocalBusiness Schema
+
+**Required Fields:**
+- name
+- description
+- url
+- telephone
+- address (PostalAddress)
+- geo (GeoCoordinates with lat/lng)
+
+**Optional but Recommended:**
+- image
+- openingHours
+- priceRange
+- areaServed (GeoCircle or City list)
+
+### Place Schema (Location Pages)
+
+**Required Fields:**
+- name
+- description
+- address (PostalAddress)
+- geo (GeoCoordinates)
+
+**Service Area (GeoCircle):**
+- geoMidpoint (GeoCoordinates)
+- geoRadius (Distance with value and unitCode)
+
+### Example: Enhanced LocalBusiness with Service Area
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "Example Plumbing",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "123 Main St",
+    "addressLocality": "Austin",
+    "addressRegion": "TX",
+    "postalCode": "78701"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 30.2672,
+    "longitude": -97.7431
+  },
+  "areaServed": [
+    {
+      "@type": "GeoCircle",
+      "geoMidpoint": {
+        "@type": "GeoCoordinates",
+        "latitude": 30.2672,
+        "longitude": -97.7431
+      },
+      "geoRadius": {
+        "@type": "Distance",
+        "value": 25,
+        "unitCode": "SMI"
+      }
+    },
+    {
+      "@type": "City",
+      "name": "Austin"
+    },
+    {
+      "@type": "City",
+      "name": "Round Rock"
+    }
+  ]
+}
+```

@@ -48,6 +48,8 @@ The Orchestrator is a **PROMPT ROUTER**, not an executor.
 | 3. Design Tokens | Design/Imagery | Gemini | design-tokens.json, effects.md |
 | **3A. Design Inspiration Review** | Design/Imagery | **Gemini (OUTSIDE Cursor)** | design-analysis.md reviewed and saved |
 | **4. Imagery** | Design/Imagery | **Claude + OpenAI API** | image-prompts.json, /assets/images/ populated, image-manifest.json |
+| **5. Build** | Builder | Cursor Auto | All pages built, **GEO schema verified (if local SEO), structured data present** |
+| **6. Content** | Content | Claude | All content written, **AI/LLM optimization verified (freshness, Q&A format, llms.txt)** |
 | 5. Build | Builder | Cursor Auto | All pages created, components working |
 | 6. Content | Content | Claude | All page copy written |
 | 7. QA | Admin/QA | Claude | PageSpeed 95+, all checks pass |
@@ -419,6 +421,126 @@ Then provide:
 ```
 
 **Wait for user confirmation before advancing.**
+
+---
+
+## Hard Gate Enforcement: GEO Schema & AI/LLM Requirements
+
+### Phase 5 (Build) — GEO Schema Gate (FORCEFULLY ENFORCED)
+
+**Before Phase 5 can complete, Orchestrator MUST verify:**
+
+#### For Local SEO Sites (distribution strategy = "local-seo" or "multi-state-national"):
+
+```
+🚫 HARD GATE — Cannot proceed to Content phase without GEO schema verification
+
+Required checks:
+1. ✅ LocalBusiness schema present on homepage (if applicable)
+2. ✅ Place schema present on location pages (if locations exist)
+3. ✅ GeoCoordinates with lat/lng in LocalBusiness schema
+4. ✅ Service area defined (GeoCircle or areaServed property)
+5. ✅ All location pages have proper GEO schema
+
+Verification:
+- Check src/utils/schema.ts for generateLocalBusinessSchema function
+- Verify location pages include Place schema
+- Confirm geo coordinates are present in schema output
+
+If ANY check fails:
+→ STOP — Builder must add missing GEO schema before proceeding
+→ Provide exact instructions: "Add Place schema to location pages. Add GeoCircle to service area."
+```
+
+#### For All Sites:
+
+```
+Required checks:
+1. ✅ Structured data (JSON-LD) present on all pages
+2. ✅ Schema types match seo-requirements.md specifications
+3. ✅ BreadcrumbList schema on all pages
+4. ✅ DatePublished/DateModified in Article/BlogPosting schemas
+
+If missing:
+→ STOP — Builder must add structured data before proceeding
+```
+
+**Gate Message:**
+```
+Phase 5 (Build) Gate Check:
+
+GEO Schema Verification:
+- [ ] LocalBusiness schema verified (if local SEO)
+- [ ] Place schema verified (if location pages exist)
+- [ ] GeoCoordinates present (if applicable)
+- [ ] Service area defined (if applicable)
+
+Structured Data Verification:
+- [ ] All pages have JSON-LD schema
+- [ ] Schema types match requirements
+- [ ] BreadcrumbList on all pages
+- [ ] Date fields in content schemas
+
+Status: [PASS / FAIL]
+
+If FAIL: Cannot proceed. Fix missing schema before advancing.
+```
+
+---
+
+### Phase 6 (Content) — AI/LLM Optimization Gate (FORCEFULLY ENFORCED)
+
+**Before Phase 6 can complete, Orchestrator MUST verify:**
+
+```
+🚫 HARD GATE — Cannot proceed to QA phase without AI/LLM optimization verification
+
+Required checks:
+1. ✅ llms.txt file exists in /public/ directory
+2. ✅ All content has "lastUpdated" date in frontmatter/metadata
+3. ✅ Question-answer format used in content (H2 questions, H3 answers)
+4. ✅ FAQ schema present where FAQs exist
+5. ✅ HowTo schema present for tutorial/guide content
+6. ✅ Author attribution with Person schema (E-E-A-T)
+7. ✅ Content freshness verified (dates within last 6 months or marked as evergreen)
+
+Verification:
+- Check /public/llms.txt exists
+- Verify content frontmatter includes dateModified
+- Confirm question-answer pattern in headings
+- Check schema includes FAQ/HowTo where applicable
+- Verify author bios with credentials
+
+If ANY check fails:
+→ STOP — Content Agent must add missing AI/LLM optimizations before proceeding
+→ Provide exact instructions: "Add llms.txt. Add lastUpdated dates. Use Q&A format."
+```
+
+**Gate Message:**
+```
+Phase 6 (Content) Gate Check:
+
+AI/LLM Optimization Verification:
+- [ ] llms.txt file exists in /public/
+- [ ] All content has lastUpdated date
+- [ ] Question-answer format used (H2 questions)
+- [ ] FAQ schema present (where applicable)
+- [ ] HowTo schema present (where applicable)
+- [ ] Author attribution with Person schema
+- [ ] Content freshness verified
+
+Bing/IndexNow Verification:
+- [ ] Bing Webmaster Tools configured (if applicable)
+- [ ] sitemap.xml submitted to Bing
+- [ ] IndexNow endpoint configured (optional but recommended)
+
+Status: [PASS / FAIL]
+
+If FAIL: Cannot proceed. Fix missing AI/LLM optimizations before advancing.
+```
+
+**Critical Rule:**
+**These gates CANNOT be skipped. They are mandatory for 2026 SEO compliance and AI/LLM visibility.**
 
 ---
 

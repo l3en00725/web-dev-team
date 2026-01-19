@@ -242,9 +242,133 @@ Assume this output will become design rules.
 
 ## Version
 
-**Orchestration Protocol:** v1.0  
-**Date:** 2026-01-17  
+**Orchestration Protocol:** v1.1  
+**Date:** 2026-01-18  
 **Status:** Production-ready
+
+---
+
+## Update v1.1 — GEO Schema & AI/LLM Optimization Enforcement
+
+**Date:** 2026-01-18  
+**Status:** Complete
+
+### What Changed
+
+#### 1. ✅ Hard Gates Added to Orchestrator
+
+**Location:** `/agents/orchestrator.md`
+
+**Phase 5 (Build) Gate — GEO Schema (FORCEFULLY ENFORCED):**
+- Verifies LocalBusiness schema for local SEO sites
+- Verifies Place schema on location pages
+- Verifies GeoCoordinates with lat/lng
+- Verifies service area (GeoCircle or areaServed)
+- **Blocks progression if missing**
+
+**Phase 6 (Content) Gate — AI/LLM Optimization (FORCEFULLY ENFORCED):**
+- Verifies llms.txt file exists
+- Verifies all content has lastUpdated dates
+- Verifies question-answer format used
+- Verifies FAQ/HowTo schema present
+- Verifies author attribution with Person schema
+- Verifies content freshness
+- **Blocks progression if missing**
+
+#### 2. ✅ Schema/SEO Metadata Skill Enhanced
+
+**Location:** `/skills/schema-seo-metadata/SKILL.md`
+
+**New Schema Generators:**
+- Place schema (for location pages)
+- GeoCircle (for service areas)
+- Enhanced LocalBusiness with service area
+- HowTo schema (for tutorials)
+- Review/AggregateRating schema
+- Enhanced Person schema with credentials
+
+**New Requirements:**
+- llms.txt file generation
+- DateModified tracking in all content
+- GEO schema prerequisites for local SEO
+
+#### 3. ✅ Content Agent Updated
+
+**Location:** `/agents/content.md`
+
+**New Hard Limits:**
+- Cannot skip AI/LLM optimization requirements
+- Cannot write content without lastUpdated dates
+- Cannot skip question-answer format
+
+**New Requirements:**
+- Question-answer format (H2 questions, H3 answers)
+- Content freshness tracking (datePublished, dateModified)
+- Author attribution with Person schema
+- FAQPage and HowTo schema usage
+
+#### 4. ✅ SEO Requirements Template Enhanced
+
+**Location:** `/templates/seo-requirements.md`
+
+**New Sections:**
+- AI/LLM Optimization Requirements (2026 MANDATORY)
+- GEO Schema Requirements (Local SEO Sites)
+- Content freshness requirements
+- Question-answer format patterns
+- llms.txt file requirements
+- Bing/IndexNow setup
+
+#### 5. ✅ Workflow Updated
+
+**Location:** `/workflows/new-site-workflow.md`
+
+**Phase 5 (Build) Updates:**
+- GEO schema verification gate added
+- Blocks progression if GEO schema missing (for local SEO)
+
+**Phase 7 (Content) Updates:**
+- AI/LLM optimization requirements added
+- llms.txt creation requirement
+- Content freshness tracking
+- Question-answer format enforcement
+
+**Phase 8 (Admin Setup) Updates:**
+- Bing Webmaster Tools setup step added
+- IndexNow configuration (optional)
+
+### Files Modified
+
+1. `/agents/orchestrator.md` — Hard gates for GEO and AI/LLM
+2. `/skills/schema-seo-metadata/SKILL.md` — New schemas and llms.txt
+3. `/agents/content.md` — AI/LLM requirements
+4. `/templates/seo-requirements.md` — New sections
+5. `/workflows/new-site-workflow.md` — Updated phases
+
+### Enforcement Level
+
+**CRITICAL:** These gates are **FORCEFULLY ENFORCED** and **CANNOT BE SKIPPED**.
+
+- Orchestrator blocks progression if gates fail
+- No override option (except explicit user override with justification)
+- Required for 2026 SEO compliance and AI/LLM visibility
+
+### Backward Compatibility
+
+✅ **All existing workflows still work**
+- New requirements are additive
+- Existing sites can be updated incrementally
+- No breaking changes to existing functionality
+
+---
+
+## Version History
+
+**Orchestration Protocol:** v1.1  
+**Date:** 2026-01-18  
+**Status:** Production-ready
+
+**Previous Version:** v1.0 (2026-01-17)
 
 ---
 
