@@ -358,7 +358,36 @@ Before Build phase can complete:
 - [ ] Mobile navigation functional
 - [ ] Forms usable on mobile
 
-**Cannot proceed to Content phase without mobile optimization verification.**
+**Icon System Requirements (MANDATORY FOR ALL SITES):**
+
+Before Build phase can complete:
+
+1. **Lucide Icons Installation:**
+   - [ ] Lucide icons installed via package manager OR
+   - [ ] Local `/icons/lucide/` folder created with SVGs from lucide.dev
+
+2. **Icon Usage:**
+   - [ ] All icons use Lucide SVG icons
+   - [ ] No emojis used as icons
+   - [ ] No image-based icons (PNG/JPG/WebP)
+   - [ ] Consistent stroke-based style across all sections
+
+3. **Icon Standards:**
+   - [ ] Standard sizes used (24px inline, 28-32px features)
+   - [ ] Icons inherit text color (unless explicitly overridden)
+   - [ ] Icons used for: feature cards, benefit lists, UI affordances
+
+4. **Documentation:**
+   - [ ] Icon exceptions documented in `/imagery/icons.md` (if any)
+
+**Gate Check (Orchestrator enforces):**
+- [ ] Lucide icons installed or local folder exists
+- [ ] No emojis used as icons
+- [ ] No image-based icons
+- [ ] Consistent icon style verified
+- [ ] Standard sizes used
+
+**Cannot proceed to Content phase without icon system verification.**
 
 - [ ] Astro project initialized
 - [ ] Dependencies installed

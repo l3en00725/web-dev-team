@@ -358,6 +358,77 @@ If rules conflict, follow this priority:
 
 ---
 
+## Rule 10: Icon System Must Use Lucide Icons (SVG-Only)
+
+**Gate Type:** Design Standard  
+**Enforced By:** Builder Agent, Orchestrator (Phase 5 gate)  
+**Consequence:** Build blocked
+
+### Description
+Every website build must use Lucide Icons as the primary and default icon system. SVG format only. No emojis, PNGs, JPGs, or third-party icon images.
+
+### Why
+- Ensures visual consistency across all projects
+- Maintains professional design quality at scale
+- Removes subjective icon decisions
+- SVG icons are scalable, performant, and accessible
+
+### Requirements
+
+**Primary Icon Library:**
+- **Lucide Icons** — Default and primary icon system
+- **Format:** SVG only
+- **Installation:** Required at project setup
+  - Install via package manager (`lucide-react`, `lucide`, or framework-appropriate variant), OR
+  - Create local `/icons/lucide/` folder with copied SVGs from lucide.dev
+
+**Usage Priority:**
+Lucide icons must be used first for:
+- Feature cards
+- Benefit lists
+- UI affordances (navigation, CTAs, highlights)
+- Abstract concepts (impact, recognition, programs, trust, etc.)
+
+**Styling Standards:**
+- Consistent stroke-based icons only
+- Standard sizes:
+  - 24px for inline/UI icons
+  - 28–32px for feature or section icons
+- Icons inherit current text color unless explicitly overridden
+
+**Prohibited:**
+- ❌ Emojis as icons
+- ❌ Mixed icon styles on the same page
+- ❌ Image-based icons (PNG/JPG/WebP)
+- ❌ Multiple icon libraries in the same project
+
+### Enforcement
+- Builder Agent must install Lucide icons at project setup
+- Orchestrator verifies icon system in Phase 5 (Build) gate
+- No UI work proceeds without Lucide icons installed
+- Icon usage must be consistent across all sections
+
+### Project Setup Checklist (Required)
+Before any UI work begins:
+- [ ] Lucide icons installed or SVGs added locally
+- [ ] Icon usage rule acknowledged
+- [ ] No emojis or image icons introduced
+- [ ] Icons used consistently across all sections
+
+### Fallback Rule
+If a suitable Lucide icon does not exist:
+- Request approval before introducing any alternative icon source
+- Document the exception in `/imagery/icons.md`
+
+### Override
+Requires:
+- Documented justification
+- Approval from Architect Agent
+- Exception recorded in `/imagery/icons.md`
+- Plan to migrate to Lucide when suitable icon becomes available
+
+---
+
 ## Compliance Verification
 
 Before any deployment, verify:
@@ -370,3 +441,5 @@ Before any deployment, verify:
 - [ ] Rule 6: PageSpeed 95+ achieved
 - [ ] Rule 7: Admin/QA approval received
 - [ ] Rule 8: Analytics connected
+- [ ] Rule 9: Logo links to homepage
+- [ ] Rule 10: Lucide icons installed and used consistently

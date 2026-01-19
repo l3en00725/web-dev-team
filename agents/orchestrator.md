@@ -492,6 +492,35 @@ If ANY check fails:
 → Provide exact instructions: "Add viewport meta tag. Fix horizontal scroll. Increase touch target sizes. Test at 375px width."
 ```
 
+#### Icon System Gate (FORCEFULLY ENFORCED FOR ALL SITES):
+
+```
+🚫 HARD GATE — Cannot proceed to Content phase without icon system verification
+
+Required checks:
+1. ✅ Lucide icons installed (package manager or local /icons/lucide/ folder)
+2. ✅ No emojis used as icons anywhere in the codebase
+3. ✅ No image-based icons (PNG/JPG/WebP) used for UI icons
+4. ✅ Consistent icon style across all sections (stroke-based SVG)
+5. ✅ Icons use standard sizes (24px for inline, 28-32px for features)
+6. ✅ Icon exceptions documented in /imagery/icons.md (if any)
+
+Verification:
+- Check package.json for lucide package OR verify /icons/lucide/ folder exists
+- Search codebase for emoji usage (🚀, ✅, etc.) in icon contexts
+- Check for PNG/JPG/WebP files used as icons
+- Verify icon components use Lucide icons
+- Check icon sizes are consistent (24px, 28px, 32px)
+- Review /imagery/icons.md for documented exceptions
+
+If ANY check fails:
+→ STOP — Builder must fix icon system issues before proceeding
+→ Provide exact instructions: "Install Lucide icons. Remove emojis/image icons. Use consistent SVG icons. Document any exceptions."
+```
+
+**Design Behavior Directive:**
+"Default to Lucide SVG icons whenever an icon is needed. Select icons that best represent the intent of the section. Prioritize clarity, consistency, and restraint."
+
 **Gate Message:**
 ```
 Phase 5 (Build) Gate Check:
@@ -518,9 +547,17 @@ Mobile Optimization Verification (MANDATORY):
 - [ ] Mobile navigation functional
 - [ ] Forms usable on mobile
 
+Icon System Verification (MANDATORY):
+- [ ] Lucide icons installed (package or local SVGs)
+- [ ] No emojis used as icons
+- [ ] No image-based icons (PNG/JPG/WebP)
+- [ ] Consistent icon style across all sections
+- [ ] Icons use standard sizes (24px inline, 28-32px features)
+- [ ] Icon usage documented in /imagery/icons.md (if exceptions exist)
+
 Status: [PASS / FAIL]
 
-If FAIL: Cannot proceed. Fix missing schema or mobile optimization issues before advancing.
+If FAIL: Cannot proceed. Fix missing schema, mobile optimization, or icon system issues before advancing.
 ```
 
 ---

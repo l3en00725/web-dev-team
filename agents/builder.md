@@ -23,6 +23,7 @@ Implements the site exactly as defined by the Architect and Design Gem. Executes
 - Applies SEO requirements mechanically
 - Ensures site builds and deploys successfully
 - Implements design tokens from `design-tokens.json`
+- **Installs and enforces Lucide icon system (SVG-only, mandatory)**
 - Sets up CMS/content structure
 - Configures webhooks and forms
 
@@ -144,7 +145,69 @@ Mobile Optimization Check:
 → STOP — Fix mobile optimization issues before proceeding
 → Cannot advance to Content phase without mobile optimization
 
-### Rule 3: Asset Verification
+### Rule 3: Icon System (MANDATORY — Lucide Icons Only)
+
+**Lucide Icons are REQUIRED for all website builds.**
+
+**Installation (Required at Project Setup):**
+1. **Option 1:** Install via package manager
+   ```bash
+   npm install lucide-astro  # For Astro
+   # OR
+   npm install lucide-react  # For React
+   # OR framework-appropriate variant
+   ```
+
+2. **Option 2:** Create local `/icons/lucide/` folder
+   - Copy SVGs from [lucide.dev](https://lucide.dev)
+   - Store in `/public/icons/lucide/` or `/src/icons/lucide/`
+
+**Usage Rules:**
+- **Primary:** Use Lucide icons for ALL icon needs
+- **Format:** SVG only (no PNG, JPG, WebP, or emojis)
+- **Sizes:**
+  - 24px for inline/UI icons
+  - 28–32px for feature or section icons
+- **Styling:** Icons inherit current text color unless explicitly overridden
+- **Consistency:** Use stroke-based icons consistently across all sections
+
+**When to Use Lucide Icons:**
+- Feature cards
+- Benefit lists
+- UI affordances (navigation, CTAs, highlights)
+- Abstract concepts (impact, recognition, programs, trust, etc.)
+
+**Prohibited:**
+- ❌ Emojis as icons (🚀, ✅, etc.)
+- ❌ Mixed icon styles on the same page
+- ❌ Image-based icons (PNG/JPG/WebP)
+- ❌ Multiple icon libraries in the same project
+
+**Fallback Rule:**
+If a suitable Lucide icon does not exist:
+1. Request approval before introducing any alternative icon source
+2. Document the exception in `/imagery/icons.md`
+3. Plan to migrate to Lucide when suitable icon becomes available
+
+**Verification Checklist:**
+```
+Icon System Check:
+- [ ] Lucide icons installed (package or local folder)
+- [ ] No emojis used as icons
+- [ ] No image-based icons (PNG/JPG/WebP)
+- [ ] Consistent icon style (stroke-based SVG)
+- [ ] Standard sizes used (24px, 28px, 32px)
+- [ ] Exceptions documented in /imagery/icons.md (if any)
+```
+
+**If ANY check fails:**
+→ STOP — Fix icon system issues before proceeding
+→ Cannot advance to Content phase without proper icon system
+
+**Design Behavior Directive:**
+"Default to Lucide SVG icons whenever an icon is needed. Select icons that best represent the intent of the section. Prioritize clarity, consistency, and restraint."
+
+### Rule 4: Asset Verification
 
 **Before implementing any section, verify assets exist.**
 
@@ -165,7 +228,7 @@ Scan the `layers` array in `layout-manifest.json`. For each layer with `type: "a
 </div>
 ```
 
-### Rule 4: Logo Always Links to Homepage
+### Rule 5: Logo Always Links to Homepage
 
 **Logo in header/navigation MUST link to homepage.**
 
@@ -203,7 +266,7 @@ Every logo in the header or navigation must be wrapped in a link to the homepage
 
 **This is a universal UX pattern and must be implemented on every site.**
 
-### Rule 5: Config Before Build
+### Rule 6: Config Before Build
 
 **Apply Tailwind config FIRST, then build components.**
 
