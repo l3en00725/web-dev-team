@@ -658,6 +658,176 @@ If FAIL: Cannot proceed. Fix missing AI/LLM optimizations before advancing.
 
 ---
 
+## Local Development Server Management (CRITICAL — Phase 5 Build)
+
+**Problem:** Multiple dev servers are being launched instead of using one persistent server, causing friction when switching between local development and Vercel deployment.
+
+**Solution:** Use ONE persistent local dev server that stays running throughout the build phase.
+
+### Local Dev Server Workflow (MANDATORY)
+
+**Rule:** ONE dev server per project. Keep it running. Never launch multiple servers.
+
+#### Step 1: Start Local Dev Server (Once — At Start of Build Phase)
+
+**Command:**
+```bash
+npm run dev
+```
+
+**Expected output:**
+```
+  Astro  v4.x.x  ready in XXX ms
+
+  ➜  Local:   http://localhost:4321/
+  ➜  Network: use --host to expose
+```
+
+**Critical Rules:**
+- **Run this ONCE at the start of Build Phase**
+- **Keep the terminal running** — DO NOT close it
+- **DO NOT run `npm run dev` again** while the server is already running
+- **Server stays running** for the entire build phase
+- **Changes auto-reload** — no need to restart server
+
+#### Step 2: Keep Server Running (During All Build Work)
+
+**While building:**
+- Server runs on `http://localhost:4321/`
+- Browser auto-refreshes on file changes
+- **DO NOT stop the server** unless absolutely necessary
+- **DO NOT launch a new server** — use the existing one
+
+#### Step 3: Verify Server Status (If Unsure)
+
+**Check if server is already running:**
+```bash
+# Check for process on port 4321
+lsof -ti:4321
+```
+
+**If server is running:**
+- **DO NOT start a new one**
+- **Use existing server at http://localhost:4321/**
+- Continue working — changes will auto-reload
+
+**If server is NOT running:**
+- Start with: `npm run dev`
+- Keep it running
+
+#### Step 4: Switching Between Local Dev and Vercel Deployment
+
+**Local Development (localhost:4321):**
+- Use for: Building, tweaking, testing changes
+- Server: `npm run dev` (keep running)
+- URL: `http://localhost:4321/`
+- **This is YOUR development environment**
+
+**Vercel Deployment (production):**
+- Use for: Final deployment, production preview
+- Server: Vercel handles this (separate from local)
+- URL: `https://your-site.vercel.app`
+- **This is PRODUCTION — separate from local dev**
+
+**Key Point:** Local dev and Vercel deployment are **COMPLETELY SEPARATE**.
+- Local dev server = your development environment (localhost)
+- Vercel deployment = production environment (hosted)
+- You can have BOTH running at the same time
+- Changes to local files don't affect Vercel until you deploy
+
+#### Step 5: After Vercel Deployment — Return to Local Dev
+
+**Workflow:**
+1. Deploy to Vercel: `git push` (triggers Vercel deployment)
+2. **Keep local dev server running** (don't stop it)
+3. Continue working locally: `http://localhost:4321/`
+4. Make changes locally (server auto-reloads)
+5. Test locally first
+6. Deploy again when ready: `git push`
+
+**Never do this:**
+- ❌ Stop local server after deploying to Vercel
+- ❌ Start a new server after deploying to Vercel
+- ❌ Deploy to Vercel every time you make a change locally
+
+**Always do this:**
+- ✅ Keep local dev server running continuously
+- ✅ Make changes locally and test first
+- ✅ Deploy to Vercel only when changes are ready
+- ✅ Return to local dev immediately after deployment
+
+### Orchestrator Instructions for Phase 5 (Build)
+
+**At the START of Phase 5, Orchestrator MUST:**
+
+1. **Check if dev server is already running:**
+   ```
+   Check if local dev server is running on port 4321.
+   
+   If running: "✅ Dev server already running. Continue using http://localhost:4321/"
+   If not running: "⚠️ Start local dev server: npm run dev"
+   ```
+
+2. **Remind user to keep server running:**
+   ```
+   REMINDER: Keep the dev server running throughout Build Phase.
+   - Changes auto-reload (no need to restart)
+   - Do NOT close the terminal running npm run dev
+   - Do NOT start a new server
+   - Use http://localhost:4321/ for local development
+   ```
+
+3. **Clarify local vs Vercel:**
+   ```
+   LOCAL DEV: http://localhost:4321/ (your development environment)
+   VERCEL: https://your-site.vercel.app (production, separate)
+   
+   These are SEPARATE. Work locally, deploy to Vercel when ready.
+   ```
+
+4. **Before Build Phase completes:**
+   ```
+   Verify:
+   - [ ] Local dev server is running (or user confirms server status)
+   - [ ] User understands local dev vs Vercel deployment are separate
+   - [ ] User knows to keep local server running for continued tweaking
+   ```
+
+### Troubleshooting: Port Already in Use
+
+**If you see:**
+```
+Error: Port 4321 is already in use
+```
+
+**Solution:**
+1. **Check if server is already running:**
+   ```bash
+   lsof -ti:4321
+   ```
+
+2. **If process exists, use existing server:**
+   - Open `http://localhost:4321/` in browser
+   - Continue using existing server
+
+3. **If process doesn't exist but port is blocked:**
+   ```bash
+   # Kill process on port 4321
+   kill -9 $(lsof -ti:4321)
+   
+   # Then start server
+   npm run dev
+   ```
+
+4. **Alternative: Use different port (only if necessary):**
+   ```bash
+   # Use port 4322 instead
+   npm run dev -- --port 4322
+   ```
+   **Note:** Only use this if port 4321 is truly unavailable. Prefer killing the blocking process.
+
+---
+
 ## Phase Completion Cleanup
 
 After each phase completes, the Orchestrator should offer cleanup to keep the repository clean.

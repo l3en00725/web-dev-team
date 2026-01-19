@@ -2,7 +2,7 @@
 
 ## Overview
 
-Eight non-negotiable rules that govern the web-dev-team system. These rules are hard gates — no exceptions without documented override and explicit approval.
+Eleven non-negotiable rules that govern the web-dev-team system. These rules are hard gates — no exceptions without documented override and explicit approval.
 
 ---
 
@@ -429,6 +429,93 @@ Requires:
 
 ---
 
+## Rule 11: Local Dev Server Management (ONE Persistent Server)
+
+**Gate Type:** Workflow Efficiency  
+**Enforced By:** Builder Agent, Orchestrator (Phase 5 instructions)  
+**Consequence:** Inefficient workflow, multiple servers causing confusion
+
+### Description
+Every project must use ONE persistent local development server during the Build phase. Never launch multiple servers. Keep the server running continuously. Local development and Vercel deployment are completely separate environments.
+
+### Why
+- Prevents port conflicts and server confusion
+- Eliminates friction when switching between local dev and Vercel deployment
+- Saves time by avoiding unnecessary server restarts
+- Ensures clear separation between development and production environments
+
+### Requirements
+
+**Server Management:**
+- **Start server ONCE** at the beginning of Build Phase: `npm run dev`
+- **Keep server running** throughout the entire Build Phase
+- **DO NOT stop server** after deploying to Vercel
+- **DO NOT launch multiple servers** — use the existing one
+- **Changes auto-reload** — no need to restart server
+
+**Local Development vs Vercel Deployment:**
+- **Local Dev:** `http://localhost:4321/` (your development environment)
+- **Vercel Deployment:** `https://your-site.vercel.app` (production, separate)
+
+**These are SEPARATE:**
+- Local dev server = your development environment (localhost)
+- Vercel deployment = production environment (hosted)
+- You can have BOTH running at the same time
+- Changes to local files don't affect Vercel until you deploy
+
+**Workflow:**
+1. Start local dev server ONCE: `npm run dev`
+2. Keep server running continuously
+3. Make changes locally (server auto-reloads)
+4. Test locally at `http://localhost:4321/`
+5. Deploy to Vercel when ready: `git push`
+6. **Keep local server running** after deployment
+7. Continue working locally for tweaks
+8. Deploy again when ready
+
+### Prohibited Actions
+- ❌ Stopping local server after deploying to Vercel
+- ❌ Starting a new server after deploying to Vercel
+- ❌ Launching multiple dev servers simultaneously
+- ❌ Running `npm run dev` multiple times
+- ❌ Deploying to Vercel for every local change
+
+### Required Actions
+- ✅ Start local dev server ONCE at Build Phase start
+- ✅ Keep server running continuously
+- ✅ Work locally, test locally, deploy separately
+- ✅ Return to local dev immediately after deployment
+
+### Verification Checklist
+Before Build Phase:
+- [ ] Check if dev server is already running (`lsof -ti:4321`)
+- [ ] If not running, start ONCE: `npm run dev`
+- [ ] If running, use existing server (don't start new one)
+
+During Build Phase:
+- [ ] Dev server running on `http://localhost:4321/`
+- [ ] Server stays running (not stopped/restarted)
+- [ ] Changes auto-reload (no manual restart needed)
+
+After Vercel Deployment:
+- [ ] Local dev server still running
+- [ ] Continue working locally
+- [ ] Deploy to Vercel separately when ready
+
+### Enforcement
+- Builder Agent checks server status at Build Phase start
+- Orchestrator provides clear instructions for server management
+- System reminds user to keep server running
+- Port conflict warnings direct user to use existing server
+
+### Override
+Not recommended. One persistent server is the most efficient workflow. Override only if:
+- Port 4321 is truly unavailable and cannot be freed
+- Alternative development setup is explicitly required
+- Exception documented with justification
+
+---
+
 ## Compliance Verification
 
 Before any deployment, verify:
@@ -443,3 +530,4 @@ Before any deployment, verify:
 - [ ] Rule 8: Analytics connected
 - [ ] Rule 9: Logo links to homepage
 - [ ] Rule 10: Lucide icons installed and used consistently
+- [ ] Rule 11: One persistent local dev server running (not multiple servers)

@@ -471,6 +471,71 @@ When starting a build, follow this order:
 - [ ] All pages render
 - [ ] No console errors
 
+### Step 6: Local Dev Server Management (CRITICAL)
+
+**Rule:** Use ONE persistent local dev server. Never launch multiple servers.
+
+**Before starting build work:**
+
+1. **Check if dev server is already running:**
+   ```bash
+   # Check for process on port 4321
+   lsof -ti:4321
+   ```
+
+2. **If NOT running, start server ONCE:**
+   ```bash
+   npm run dev
+   ```
+   
+   **Expected output:**
+   ```
+     Astro  v4.x.x  ready in XXX ms
+
+     ➜  Local:   http://localhost:4321/
+   ```
+
+3. **If already running, use existing server:**
+   - **DO NOT start a new server**
+   - **DO NOT close existing server**
+   - Continue using `http://localhost:4321/`
+
+**During build work:**
+
+- **Keep server running** — DO NOT stop it
+- **Changes auto-reload** — no need to restart server
+- **DO NOT run `npm run dev` again** while server is running
+- **Work at `http://localhost:4321/`** for local development
+
+**After deploying to Vercel:**
+
+- **Keep local dev server running** — DO NOT stop it
+- **Continue working locally** at `http://localhost:4321/`
+- **Test changes locally first** before deploying again
+- **Deploy to Vercel separately** when ready (`git push`)
+
+**Local Dev vs Vercel Deployment:**
+
+- **Local Dev:** `http://localhost:4321/` (your development environment)
+- **Vercel:** `https://your-site.vercel.app` (production, separate)
+
+**These are SEPARATE:**
+- Local dev server = your development environment (localhost)
+- Vercel deployment = production environment (hosted)
+- You can have BOTH running at the same time
+- Changes to local files don't affect Vercel until you deploy
+
+**Never:**
+- ❌ Stop local server after deploying to Vercel
+- ❌ Start a new server after deploying to Vercel
+- ❌ Launch multiple dev servers simultaneously
+
+**Always:**
+- ✅ Keep local dev server running continuously
+- ✅ Make changes locally and test first
+- ✅ Deploy to Vercel only when changes are ready
+- ✅ Return to local dev immediately after deployment
+
 ---
 
 ## Technical Standards
