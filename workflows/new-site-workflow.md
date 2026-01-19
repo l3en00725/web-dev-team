@@ -348,6 +348,23 @@ Create:
 - [ ] OG meta tags implemented
 - [ ] All pages have OG images
 
+### Step 5.8: Phase 5 Cleanup (Optional but Recommended)
+
+**Owner:** Orchestrator
+
+- [ ] Review files created during Phase 5
+- [ ] Delete `*-test.astro` files in components (if any)
+- [ ] Delete `*-demo.astro` files in components (if any)
+- [ ] Delete `*-test.astro` files in pages (if any)
+- [ ] Flag unused imports for manual cleanup (if any)
+- [ ] Keep all production components, pages, and config files
+
+**Cleanup options:**
+1. Delete test/demo files (recommended)
+2. Skip cleanup
+
+**Gate:** User confirms cleanup preference
+
 ---
 
 ## Phase 6: Imagery (AI Image Generation)
@@ -437,7 +454,25 @@ Create:
 
 **Gate:** Manifest complete, all images in place
 
-### Step 6.6: Stock Images (if needed)
+### Step 6.6: Phase 4 Cleanup (Optional but Recommended)
+
+**Owner:** Orchestrator
+
+- [ ] Review files created during Phase 4
+- [ ] Archive `image-prompts.json` to `/docs/imagery/` (with date suffix)
+- [ ] Delete `/assets/images/generated/` (raw DALL-E output — no longer needed)
+- [ ] Delete `/assets/images/processed/` (intermediate processing — no longer needed)
+- [ ] Keep only `/assets/images/optimized/` (final images)
+- [ ] Keep `image-requirements.json` and `image-manifest.json` (reference files)
+
+**Cleanup options:**
+1. Archive intermediate files (recommended)
+2. Delete temporary files
+3. Skip cleanup
+
+**Gate:** User confirms cleanup preference
+
+### Step 6.7: Stock Images (if needed)
 
 **Skill:** Pixels/Media API  
 **Owner:** Design/Imagery Agent
@@ -562,6 +597,26 @@ Create:
 - [ ] All OG images 1200x630
 - [ ] Tested with social preview tools
 - [ ] `og-checklist.md` completed
+
+### Step 9.6: Phase 9 Cleanup (Optional but Recommended)
+
+**Owner:** Orchestrator
+
+- [ ] Review files created during Phase 9
+- [ ] Archive QA reports to `/docs/qa/`:
+  - `pagespeed-report.json` → `/docs/qa/pagespeed-report-YYYYMMDD.json`
+  - `link-check-report.json` → `/docs/qa/link-check-report-YYYYMMDD.json`
+  - `seo-checklist.md` → `/docs/qa/seo-checklist-YYYYMMDD.md`
+  - `og-checklist.md` → `/docs/qa/og-checklist-YYYYMMDD.md`
+- [ ] Delete temporary QA notes (if any)
+- [ ] Keep final QA approval documentation
+
+**Cleanup options:**
+1. Archive QA reports to `/docs/qa/` (recommended)
+2. Delete temporary files
+3. Skip cleanup
+
+**Gate:** User confirms cleanup preference
 
 ---
 

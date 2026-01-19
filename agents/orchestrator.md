@@ -422,6 +422,100 @@ Then provide:
 
 ---
 
+## Phase Completion Cleanup
+
+After each phase completes, the Orchestrator should offer cleanup to keep the repository clean.
+
+### Cleanup Process
+
+1. **List files created during the phase**
+2. **Categorize files:**
+   - **Keep** — Permanent project files (design tokens, structure, etc.)
+   - **Archive** — Important intermediate files (move to `/docs/[phase-name]/`)
+   - **Delete** — Temporary files (raw outputs, intermediate processing)
+3. **Present cleanup options to user**
+4. **Wait for user confirmation**
+5. **Execute cleanup (archive or delete)**
+
+### Cleanup Rules by Phase
+
+#### Phase 4 (Imagery) — After images optimized
+
+**Archive:**
+- `image-prompts.json` → `/docs/imagery/image-prompts-YYYYMMDD.json`
+
+**Delete:**
+- `/assets/images/generated/` — Raw DALL-E output (after optimization complete)
+- `/assets/images/processed/` — Intermediate processed images (after final optimization)
+
+**Keep:**
+- `image-requirements.json` — May be needed for reference
+- `image-manifest.json` — Final image inventory
+- `/assets/images/optimized/` — Final optimized images
+
+#### Phase 5 (Build) — After build passes
+
+**Delete:**
+- `*-test.astro` files in components
+- `*-demo.astro` files in components
+- `*-test.astro` files in pages
+- Unused import statements (can flag for manual cleanup)
+
+**Keep:**
+- All production components and pages
+- All layout files
+- All configuration files
+
+#### Phase 7 (QA) — After QA complete
+
+**Archive:**
+- `pagespeed-report.json` → `/docs/qa/pagespeed-report-YYYYMMDD.json`
+- `link-check-report.json` → `/docs/qa/link-check-report-YYYYMMDD.json`
+- `seo-checklist.md` → `/docs/qa/seo-checklist-YYYYMMDD.md`
+- `og-checklist.md` → `/docs/qa/og-checklist-YYYYMMDD.md`
+
+**Delete:**
+- Temporary checklists after verification
+- Draft QA notes
+
+**Keep:**
+- Final QA approval documentation
+
+### Cleanup Prompt Template
+
+After phase completion, the Orchestrator should say:
+
+```
+Phase [X] complete. 
+
+Files created during this phase:
+[list files]
+
+Cleanup options:
+1. Archive intermediate files to /docs/[phase-name]/ (recommended)
+2. Delete temporary files (list what will be deleted)
+3. Skip cleanup (keep all files)
+
+Which option? (1/2/3)
+```
+
+**If user chooses option 1 (Archive):**
+- Create `/docs/[phase-name]/` directory if it doesn't exist
+- Move files with date suffix
+- Confirm: "Archived [files] to /docs/[phase-name]/"
+
+**If user chooses option 2 (Delete):**
+- List exactly what will be deleted
+- Ask for confirmation: "Delete these files? (y/n)"
+- If yes: Delete files
+- If no: Skip cleanup
+
+**If user chooses option 3 (Skip):**
+- Keep all files
+- Note: "Cleanup skipped. All files retained."
+
+---
+
 ## Example Phase Transition
 
 **User:** "Phase 2 is complete."

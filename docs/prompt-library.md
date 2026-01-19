@@ -496,6 +496,54 @@ Confirm when logo processing is complete.
 
 ---
 
+## 12. Phase Cleanup Prompt
+
+**LLM:** Claude (Orchestrator)  
+**When:** After each phase completes, before advancing to next phase  
+**Purpose:** Offer cleanup to keep repository clean
+
+```
+Phase [X] complete.
+
+Files created during this phase:
+[list all files created]
+
+Categorization:
+- KEEP (permanent): [list permanent files]
+- ARCHIVE (intermediate): [list files to archive]
+- DELETE (temporary): [list files to delete]
+
+Cleanup options:
+1. Archive intermediate files to /docs/[phase-name]/ (recommended)
+   - Will move: [list files]
+   - Location: /docs/[phase-name]/[filename]-YYYYMMDD.[ext]
+
+2. Delete temporary files
+   - Will delete: [list files]
+   - ⚠️ This cannot be undone
+
+3. Skip cleanup (keep all files)
+   - All files will remain in current location
+
+Which option? (1/2/3)
+
+If option 1 (Archive):
+- Create /docs/[phase-name]/ directory
+- Move files with date suffix
+- Confirm: "Archived [count] files to /docs/[phase-name]/"
+
+If option 2 (Delete):
+- List exactly what will be deleted
+- Ask: "Delete these [count] files? (y/n)"
+- If yes: Delete and confirm
+- If no: Skip cleanup
+
+If option 3 (Skip):
+- Note: "Cleanup skipped. All files retained."
+```
+
+---
+
 ## Workflow Sequence
 
 ### Phase 0: Repository Verification
@@ -563,11 +611,13 @@ Confirm when logo processing is complete.
 | 9 | Post-Processing Verify | Claude | Any | 4.5 | Quality check |
 | 10 | Manual Image Refinement (Canva AI) | Claude | Any | 4.5 | Refinement guidance |
 | 11 | Logo Processing (Canva AI) | Claude | Any | 3 or 4 | Logo refinement |
+| 12 | Phase Cleanup | Claude | Any | After each phase | File cleanup |
 
 ---
 
 ## Version History
 
+- **v1.3** — 2026-01-18 — Added Phase Cleanup prompt (#12) for repository maintenance
 - **v1.2** — 2026-01-18 — Added Canva AI prompts (#10-11) for manual refinement and logo processing
 - **v1.1** — 2026-01-18 — Added image generation prompts (#6-9) for Phase 4
 - **v1.0** — 2026-01-17 — Initial prompt library with enhanced prompts
