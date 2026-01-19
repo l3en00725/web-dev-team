@@ -165,7 +165,7 @@ Scan the `layers` array in `layout-manifest.json`. For each layer with `type: "a
 </div>
 ```
 
-### Rule 3: Logo Always Links to Homepage
+### Rule 4: Logo Always Links to Homepage
 
 **Logo in header/navigation MUST link to homepage.**
 
@@ -203,7 +203,7 @@ Every logo in the header or navigation must be wrapped in a link to the homepage
 
 **This is a universal UX pattern and must be implemented on every site.**
 
-### Rule 4: Config Before Build
+### Rule 5: Config Before Build
 
 **Apply Tailwind config FIRST, then build components.**
 
