@@ -82,7 +82,69 @@ Follow the `layers`, `z-index`, and `tailwind_classes` in the manifest exactly. 
 ✅ RIGHT: "The manifest says absolute-layering with z-0 and z-10, so I'll implement exactly that"
 ```
 
-### Rule 2: Asset Verification
+### Rule 2: Mobile Optimization (MANDATORY)
+
+**Mobile optimization is REQUIRED before Build phase can complete.**
+
+Every site MUST have:
+
+1. **Viewport Meta Tag** — Present in all layouts:
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1">
+```
+
+2. **Mobile-First Responsive Design:**
+- Use Tailwind responsive prefixes (`sm:`, `md:`, `lg:`, `xl:`)
+- Start with mobile styles, then enhance for larger screens
+- Test at 375px width (iPhone SE size)
+
+3. **No Horizontal Scroll:**
+- All content must fit within viewport at 375px width
+- Use `overflow-x-hidden` if needed (but fix root cause)
+- Test all pages at mobile width
+
+4. **Touch Target Sizes:**
+- Buttons/links minimum 44x44px (iOS) or 48x48px (Android)
+- Use `min-h-[44px] min-w-[44px]` or larger
+- Adequate spacing between touch targets (8px minimum)
+
+5. **Readable Text:**
+- Base font size minimum 16px (prevents iOS zoom)
+- Line height minimum 1.5 for readability
+- Contrast ratios meet WCAG AA (4.5:1 for text)
+
+6. **Responsive Images:**
+- Use Astro Image component with `srcset`
+- Provide multiple sizes for different viewports
+- Lazy load below-the-fold images
+
+7. **Mobile Navigation:**
+- Hamburger menu or mobile nav pattern
+- Menu accessible and functional on mobile
+- No JavaScript-only navigation (must work without JS)
+
+8. **Mobile-Friendly Forms:**
+- Input fields properly sized (not too small)
+- Use appropriate input types (`tel`, `email`, etc.)
+- Submit buttons large enough for touch
+
+**Verification Checklist:**
+```
+Mobile Optimization Check:
+- [ ] Viewport meta tag in all layouts
+- [ ] Test homepage at 375px (no horizontal scroll)
+- [ ] All buttons ≥ 44x44px
+- [ ] Base font size ≥ 16px
+- [ ] Images responsive (srcset)
+- [ ] Mobile nav functional
+- [ ] Forms usable on mobile
+```
+
+**If ANY check fails:**
+→ STOP — Fix mobile optimization issues before proceeding
+→ Cannot advance to Content phase without mobile optimization
+
+### Rule 3: Asset Verification
 
 **Before implementing any section, verify assets exist.**
 

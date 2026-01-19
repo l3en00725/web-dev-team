@@ -381,11 +381,34 @@ Contact {site name} for {service}. {Contact methods}. {Response time or CTA}.
 - [ ] Images lazy loaded
 - [ ] CSS/JS optimized
 
-### Mobile
-- [ ] Mobile-friendly design
-- [ ] No horizontal scroll
-- [ ] Touch targets adequate size
-- [ ] Text readable without zoom
+### Mobile Optimization (MANDATORY — 2026 REQUIREMENT)
+
+**All sites MUST pass mobile optimization checks before Build phase completes.**
+
+**Required Checks:**
+- [ ] Viewport meta tag present (`<meta name="viewport" content="width=device-width, initial-scale=1">`)
+- [ ] Mobile-first responsive design implemented
+- [ ] No horizontal scroll at 375px width (test all pages)
+- [ ] Touch targets minimum 44x44px (iOS) / 48x48px (Android)
+- [ ] Base font size minimum 16px (prevents iOS zoom)
+- [ ] Line height minimum 1.5 for readability
+- [ ] Text contrast meets WCAG AA (4.5:1 minimum)
+- [ ] Images responsive (srcset or responsive images)
+- [ ] Mobile navigation functional (hamburger menu or mobile nav)
+- [ ] Forms usable on mobile (proper input sizes, touch-friendly)
+- [ ] No JavaScript-only navigation (must work without JS)
+
+**Testing Requirements:**
+- Test all pages at 375px width (iPhone SE size)
+- Verify no horizontal scroll on any page
+- Test touch interactions (buttons, links, forms)
+- Verify mobile navigation works
+- Check font sizes are readable without zoom
+
+**Gate Enforcement:**
+- Orchestrator blocks progression if mobile optimization fails
+- Builder must fix mobile issues before Content phase
+- Cannot skip mobile optimization checks
 
 ### Security
 - [ ] HTTPS enabled

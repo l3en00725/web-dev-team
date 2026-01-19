@@ -48,7 +48,7 @@ The Orchestrator is a **PROMPT ROUTER**, not an executor.
 | 3. Design Tokens | Design/Imagery | Gemini | design-tokens.json, effects.md |
 | **3A. Design Inspiration Review** | Design/Imagery | **Gemini (OUTSIDE Cursor)** | design-analysis.md reviewed and saved |
 | **4. Imagery** | Design/Imagery | **Claude + OpenAI API** | image-prompts.json, /assets/images/ populated, image-manifest.json |
-| **5. Build** | Builder | Cursor Auto | All pages built, **GEO schema verified (if local SEO), structured data present** |
+| **5. Build** | Builder | Cursor Auto | All pages built, **GEO schema verified (if local SEO), structured data present, mobile optimization verified** |
 | **6. Content** | Content | Claude | All content written, **AI/LLM optimization verified (freshness, Q&A format, llms.txt)** |
 | 5. Build | Builder | Cursor Auto | All pages created, components working |
 | 6. Content | Content | Claude | All page copy written |
@@ -426,7 +426,7 @@ Then provide:
 
 ## Hard Gate Enforcement: GEO Schema & AI/LLM Requirements
 
-### Phase 5 (Build) — GEO Schema Gate (FORCEFULLY ENFORCED)
+### Phase 5 (Build) — GEO Schema & Mobile Optimization Gates (FORCEFULLY ENFORCED)
 
 **Before Phase 5 can complete, Orchestrator MUST verify:**
 
@@ -465,11 +465,38 @@ If missing:
 → STOP — Builder must add structured data before proceeding
 ```
 
+#### Mobile Optimization Gate (FORCEFULLY ENFORCED FOR ALL SITES):
+
+```
+🚫 HARD GATE — Cannot proceed to Content phase without mobile optimization verification
+
+Required checks:
+1. ✅ Viewport meta tag present in all layouts (<meta name="viewport" content="width=device-width, initial-scale=1">)
+2. ✅ Responsive design implemented (mobile-first approach)
+3. ✅ No horizontal scroll on mobile viewports (test at 375px width)
+4. ✅ Touch targets minimum 44x44px (iOS) / 48x48px (Android)
+5. ✅ Text readable without zoom (minimum 16px base font size)
+6. ✅ Images responsive (srcset or responsive images)
+7. ✅ Navigation works on mobile (hamburger menu or mobile nav)
+8. ✅ Forms usable on mobile (input fields properly sized)
+
+Verification:
+- Check layouts for viewport meta tag
+- Test homepage at 375px width (no horizontal scroll)
+- Verify touch targets in navigation/buttons
+- Check font sizes in CSS (minimum 16px base)
+- Test mobile navigation functionality
+
+If ANY check fails:
+→ STOP — Builder must fix mobile optimization issues before proceeding
+→ Provide exact instructions: "Add viewport meta tag. Fix horizontal scroll. Increase touch target sizes. Test at 375px width."
+```
+
 **Gate Message:**
 ```
 Phase 5 (Build) Gate Check:
 
-GEO Schema Verification:
+GEO Schema Verification (if local SEO):
 - [ ] LocalBusiness schema verified (if local SEO)
 - [ ] Place schema verified (if location pages exist)
 - [ ] GeoCoordinates present (if applicable)
@@ -481,9 +508,19 @@ Structured Data Verification:
 - [ ] BreadcrumbList on all pages
 - [ ] Date fields in content schemas
 
+Mobile Optimization Verification (MANDATORY):
+- [ ] Viewport meta tag present
+- [ ] Responsive design implemented (mobile-first)
+- [ ] No horizontal scroll at 375px width
+- [ ] Touch targets ≥ 44x44px
+- [ ] Base font size ≥ 16px
+- [ ] Images responsive (srcset/responsive)
+- [ ] Mobile navigation functional
+- [ ] Forms usable on mobile
+
 Status: [PASS / FAIL]
 
-If FAIL: Cannot proceed. Fix missing schema before advancing.
+If FAIL: Cannot proceed. Fix missing schema or mobile optimization issues before advancing.
 ```
 
 ---

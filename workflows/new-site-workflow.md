@@ -308,7 +308,57 @@ Before Build phase can complete (if distribution strategy = "local-seo" or "mult
 - [ ] GeoCoordinates present
 - [ ] Service area defined
 
-**Cannot proceed to Content phase without GEO schema verification (for local SEO sites).**
+**Mobile Optimization Requirements (MANDATORY FOR ALL SITES):**
+
+Before Build phase can complete:
+
+1. **Viewport Meta Tag:**
+   - [ ] Present in all layouts
+   - [ ] Correct format: `<meta name="viewport" content="width=device-width, initial-scale=1">`
+
+2. **Responsive Design:**
+   - [ ] Mobile-first approach implemented
+   - [ ] Tailwind responsive prefixes used (`sm:`, `md:`, `lg:`)
+   - [ ] All pages tested at 375px width
+
+3. **No Horizontal Scroll:**
+   - [ ] Homepage tested at 375px (no horizontal scroll)
+   - [ ] All key pages tested at 375px
+   - [ ] Content fits within viewport
+
+4. **Touch Targets:**
+   - [ ] All buttons ≥ 44x44px
+   - [ ] All links have adequate touch area
+   - [ ] Adequate spacing between interactive elements
+
+5. **Typography:**
+   - [ ] Base font size ≥ 16px
+   - [ ] Line height ≥ 1.5
+   - [ ] Text contrast meets WCAG AA
+
+6. **Images:**
+   - [ ] Responsive images (srcset or responsive)
+   - [ ] Images scale properly on mobile
+
+7. **Navigation:**
+   - [ ] Mobile navigation functional
+   - [ ] Hamburger menu or mobile nav pattern
+   - [ ] Works without JavaScript (progressive enhancement)
+
+8. **Forms:**
+   - [ ] Input fields properly sized
+   - [ ] Submit buttons touch-friendly
+   - [ ] Forms usable on mobile
+
+**Gate Check (Orchestrator enforces):**
+- [ ] Viewport meta tag verified
+- [ ] No horizontal scroll at 375px
+- [ ] Touch targets adequate size
+- [ ] Base font size ≥ 16px
+- [ ] Mobile navigation functional
+- [ ] Forms usable on mobile
+
+**Cannot proceed to Content phase without mobile optimization verification.**
 
 - [ ] Astro project initialized
 - [ ] Dependencies installed

@@ -326,6 +326,8 @@ Assume this output will become design rules.
 **Phase 5 (Build) Updates:**
 - GEO schema verification gate added
 - Blocks progression if GEO schema missing (for local SEO)
+- **Mobile optimization gate added (MANDATORY FOR ALL SITES)**
+- Blocks progression if mobile optimization fails
 
 **Phase 7 (Content) Updates:**
 - AI/LLM optimization requirements added
@@ -337,13 +339,34 @@ Assume this output will become design rules.
 - Bing Webmaster Tools setup step added
 - IndexNow configuration (optional)
 
+#### 6. ✅ Mobile Optimization Gate Added
+
+**Location:** `/agents/orchestrator.md`, `/agents/builder.md`, `/templates/seo-requirements.md`
+
+**New Hard Gate — Phase 5 (Build):**
+- Verifies viewport meta tag present
+- Verifies responsive design (mobile-first)
+- Verifies no horizontal scroll at 375px
+- Verifies touch targets ≥ 44x44px
+- Verifies base font size ≥ 16px
+- Verifies mobile navigation functional
+- Verifies forms usable on mobile
+- **Blocks progression if ANY check fails**
+
+**Builder Agent Updates:**
+- Added Rule 2: Mobile Optimization (MANDATORY)
+- Detailed mobile optimization requirements
+- Verification checklist
+- Cannot skip mobile optimization
+
 ### Files Modified
 
-1. `/agents/orchestrator.md` — Hard gates for GEO and AI/LLM
+1. `/agents/orchestrator.md` — Hard gates for GEO, AI/LLM, and Mobile Optimization
 2. `/skills/schema-seo-metadata/SKILL.md` — New schemas and llms.txt
 3. `/agents/content.md` — AI/LLM requirements
-4. `/templates/seo-requirements.md` — New sections
-5. `/workflows/new-site-workflow.md` — Updated phases
+4. `/agents/builder.md` — Mobile optimization requirements (Rule 2)
+5. `/templates/seo-requirements.md` — New sections (AI/LLM, GEO, Mobile)
+6. `/workflows/new-site-workflow.md` — Updated phases with mobile gate
 
 ### Enforcement Level
 
@@ -351,7 +374,8 @@ Assume this output will become design rules.
 
 - Orchestrator blocks progression if gates fail
 - No override option (except explicit user override with justification)
-- Required for 2026 SEO compliance and AI/LLM visibility
+- Required for 2026 SEO compliance, AI/LLM visibility, and mobile-first web standards
+- Mobile optimization gate applies to ALL sites (not just local SEO)
 
 ### Backward Compatibility
 
