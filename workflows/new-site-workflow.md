@@ -446,12 +446,15 @@ Before Build phase can complete:
 
 ### Step 5.7: OG Images
 
-**Skill:** Vercel OG Image  
-**Owner:** Builder Agent
+**Skill:** OG Image (Static)  
+**Owner:** User (creates image), Builder Agent (adds meta tags)
 
-- [ ] `/api/og` endpoint created
-- [ ] OG meta tags implemented
-- [ ] All pages have OG images
+- [ ] User screenshots homepage hero section
+- [ ] User resizes screenshot to 1200x630
+- [ ] User saves as `public/og-image.png`
+- [ ] Builder verifies `public/og-image.png` exists
+- [ ] Builder adds OG meta tags to all pages (points to `/og-image.png`)
+- [ ] All pages have OG meta tags
 
 ### Step 5.8: Phase 5 Cleanup (Optional but Recommended)
 
@@ -759,10 +762,13 @@ Before Content phase can complete:
 
 ### Step 9.5: OG Image Verification
 
-**Skill:** Vercel OG Image  
+**Skill:** OG Image (Static)  
 **Owner:** Admin/QA Agent
 
-- [ ] All OG images 1200x630
+- [ ] `public/og-image.png` exists
+- [ ] OG image is exactly 1200x630
+- [ ] OG meta tags present on all pages
+- [ ] OG image URL accessible (`/og-image.png`)
 - [ ] Tested with social preview tools
 - [ ] `og-checklist.md` completed
 

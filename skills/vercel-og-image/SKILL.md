@@ -1,19 +1,17 @@
 ---
-name: vercel-og-image
-description: Generates Open Graph images for social sharing using Vercel OG. Use during build to ensure every page has a properly sized OG image.
-owner: Builder Agent (implements), Design Agent (provides direction)
+name: og-image-static
+description: Creates Open Graph images for social sharing using a static image approach. User screenshots the hero section and resizes to 1200x630.
+owner: Builder Agent (implements), User (creates image)
 trigger: During build — required for all public pages
-llm: Cursor Auto (Builder), Gemini (Design)
-framework: Astro (required)
+llm: Cursor Auto (Builder)
+framework: Astro
 ---
 
-# Vercel OG Image Skill
+# OG Image (Static) Skill
 
 ## Purpose
 
-Automated OG image generation for consistent social previews. Ensures every public page has a properly branded, correctly sized Open Graph image.
-
-**Framework:** This skill is specifically for **Astro** projects. For Astro, you must install `@vercel/og` explicitly (it's not included like Next.js).
+Simple static OG image generation for consistent social previews. User creates a screenshot of the homepage hero section, resizes it to 1200x630, and saves it as `og-image.png`.
 
 ---
 
@@ -25,15 +23,9 @@ During build — required for all public pages.
 
 ## Prerequisites
 
-**Installation (Astro-specific):**
-- [ ] Node.js 18+ installed
-- [ ] `@vercel/og` package installed: `npm install @vercel/og`
-- [ ] Astro project configured with Vercel adapter
-
-From Design Agent:
-- [ ] `design-tokens.json` — Colors, fonts
-- [ ] `layout-manifest.json` — Hero section for hero-locked OG renderer
-- [ ] OG image direction — Layout, style preferences
+- [ ] Homepage hero section is complete and visually finalized
+- [ ] User has access to screenshot tools
+- [ ] User has access to image editing tools (for resizing)
 
 ---
 
@@ -43,434 +35,69 @@ From Design Agent:
 |----------|-------|
 | Width | 1200px |
 | Height | 630px |
-| Format | PNG or JPEG |
-| Max file size | 8MB (Vercel limit) |
+| Format | PNG (recommended) or JPEG |
+| File name | `og-image.png` |
+| Location | `public/og-image.png` |
 
 ---
 
 ## Workflow
 
-### Step 1: Hero-Locked OG Renderer (MANDATORY)
+### Step 1: User Creates OG Image
 
-**Critical Rule:** OG images must visually match the homepage hero section. This is a HERO-LOCKED renderer, not a generic banner generator.
+**Instructions for User:**
 
-**Before creating the OG endpoint, you MUST:**
+1. **Screenshot the homepage hero section:**
+   - Navigate to the homepage in your browser
+   - Take a full screenshot of the hero section (the main viewport area)
+   - Ensure the hero content (headline, subtitle, CTA) is visible and well-composed
 
-1. **Read hero section from `layout-manifest.json`:**
-   - Locate the hero section (id: "hero")
-   - Extract `content.h1_classes` and `content.h2_classes`
-   - Extract `layers` array for background treatment
-   - Extract typography values: font family, weight, letter spacing, line height
+2. **Resize the screenshot to 1200x630:**
+   - Open the screenshot in an image editor (Photoshop, GIMP, Preview, online tools, etc.)
+   - Resize/crop the image to exactly **1200 pixels wide × 630 pixels tall**
+   - Maintain aspect ratio and center the hero content
+   - Ensure text is readable and not cut off
 
-2. **Understand Hero-Locked Philosophy:**
-   - OG image is a "cinematic hero snapshot"
-   - Typography, spacing, and layout must mirror the hero exactly
-   - Background treatment must match hero layers
-   - This is intentionally opinionated (no generic layouts)
-   - Contrast increased +10-15% for social feed compression
+3. **Save as `og-image.png`:**
+   - Save the resized image as `og-image.png`
+   - Place it in the `public/` directory of your project
+   - Final path: `public/og-image.png`
 
-### Step 2: Receive Design Direction
+**Tips:**
+- If the hero is taller than 630px, crop from the top/bottom to focus on the main content
+- If the hero is wider than 1200px, center the content and crop the sides
+- Ensure good contrast and readability (social feeds may compress images slightly)
+- The image should represent your brand and homepage hero accurately
 
-**Primary Source:** Hero section from `layout-manifest.json`
+### Step 2: Implement OG Meta Tags
 
-**From Design Agent's `effects.md` (if additional direction provided):**
-
-```markdown
-## OG Image Style
-
-- Background: Match hero layers (gradients, overlays)
-- Title: Match hero h1_classes typography
-- Subtitle: Match hero h2_classes typography
-- Layout: Match hero positioning (not centered)
-- Contrast: +10-15% boost for social feed compression
-```
-
-### Step 3: Create Hero-Locked OG Image Endpoint
-
-**Astro-Specific Requirements:**
-- File location: `src/pages/api/og.ts` (or `og.tsx` if using JSX syntax)
-- Must use `APIRoute` type from 'astro'
-- Must use `export const GET: APIRoute` syntax
-- Must install `@vercel/og` explicitly (not included like Next.js)
-- Use `import.meta.url` for local resources (fonts, images)
-- Return `new ImageResponse()` directly (not wrapped in Response)
-
-**Using @vercel/og with Hero-Locked Implementation (Astro):**
-
-```typescript
-// src/pages/api/og.ts (or og.tsx for JSX syntax)
-import { ImageResponse } from '@vercel/og';
-import type { APIRoute } from 'astro';
-import layoutManifest from '../../data/layout-manifest.json';
-
-/**
- * HERO-LOCKED OG Image Renderer
- * 
- * This OG renderer is intentionally opinionated to match the homepage hero section.
- * It reads typography, layout, and background treatment from layout-manifest.json
- * to ensure visual consistency between the live hero and social preview images.
- * 
- * Why this diverges from generic layouts:
- * - OG images should be a "cinematic hero snapshot," not a generic banner
- * - Visual consistency builds brand recognition in social feeds
- * - Hero typography and spacing are carefully designed and should be preserved
- * 
- * Why contrast and spacing differ slightly from live hero:
- * - Social feeds compress images, reducing contrast
- * - +10-15% contrast boost ensures readability in compressed feeds
- * - Slightly tighter spacing compensates for feed compression
- */
-export const GET: APIRoute = async ({ request }) => {
-  const url = new URL(request.url);
-  const title = url.searchParams.get('title') || 'Default Title';
-  const subtitle = url.searchParams.get('subtitle') || '';
-  const type = url.searchParams.get('type') || 'page';
-  
-  // Read hero section from layout-manifest.json
-  const heroSection = layoutManifest.sections.find(s => s.id === 'hero');
-  if (!heroSection) {
-    throw new Error('Hero section not found in layout-manifest.json');
-  }
-  
-  // Extract typography from hero h1_classes and h2_classes
-  // Parse Tailwind classes to extract: font family, weight, letter spacing, line height
-  const h1Classes = heroSection.content?.h1_classes || '';
-  const h2Classes = heroSection.content?.h2_classes || '';
-  
-  // Extract font family from design tokens or hero classes
-  // Example: "font-display" maps to display font family from design-tokens.json
-  const designTokens = await import('../../data/design-tokens.json').catch(() => null);
-  const fontFamily = designTokens?.typography?.display?.fontFamily || 'Inter';
-  
-  // Extract background treatment from hero layers
-  const heroLayers = heroSection.layers || [];
-  const backgroundLayer = heroLayers.find(l => l.type === 'background' || l.type === 'overlay');
-  const backgroundGradient = backgroundLayer?.classes?.includes('gradient') 
-    ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' // Extract from classes
-    : '#0f172a';
-  
-  // Load hero font (must match hero font family)
-  // Astro: Use import.meta.url for local resources, or fetch for remote
-  const fontData = await fetch(
-    new URL(`../../fonts/${fontFamily}-Bold.ttf`, import.meta.url)
-  ).then(res => res.arrayBuffer()).catch(() => {
-    // Fallback: try public path
-    return fetch(
-      new URL(`/fonts/${fontFamily}-Bold.ttf`, request.url)
-    ).then(res => res.arrayBuffer()).catch(() => null);
-  });
-  
-  return new ImageResponse(
-    {
-      type: 'div',
-      props: {
-        style: {
-          height: '100%',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          // HERO-LOCKED: Match hero positioning (not vertically centered)
-          // Hero content is typically positioned lower, not centered
-          alignItems: 'center',
-          justifyContent: 'flex-start', // NOT center - matches hero positioning
-          paddingTop: 200, // Positioned lower, matching hero layout
-          // Match hero background treatment
-          backgroundColor: '#0f172a',
-          backgroundImage: backgroundGradient,
-          // Increase contrast +10-15% for social feed compression
-          filter: 'contrast(1.12)', // +12% contrast boost
-        },
-        children: [
-          // Background layers matching hero (if hero uses asset layers)
-          heroLayers.filter(l => l.type === 'asset').map(layer => ({
-            type: 'div',
-            props: {
-              style: {
-                position: 'absolute',
-                inset: 0,
-                backgroundImage: `url(${layer.src})`,
-                backgroundSize: 'cover',
-                opacity: 0.8, // Slightly reduced for OG compression
-              }
-            }
-          })),
-          // Gradient overlays matching hero layers
-          heroLayers.filter(l => l.type === 'overlay').map(layer => ({
-            type: 'div',
-            props: {
-              style: {
-                position: 'absolute',
-                inset: 0,
-                // Extract gradient from layer classes
-                background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.8) 100%)',
-              }
-            }
-          })),
-          // H1 Title - Match hero h1_classes typography
-          {
-            type: 'div',
-            props: {
-              style: {
-                // Extract from h1_classes: text-6xl md:text-8xl font-display font-bold tracking-tight
-                fontSize: 96, // Matches text-8xl (hero desktop size)
-                fontWeight: 700, // font-bold
-                fontFamily: fontFamily,
-                letterSpacing: '-0.02em', // tracking-tight
-                lineHeight: 1.1, // Matches hero line height
-                color: '#ffffff', // text-white
-                textAlign: 'center',
-                maxWidth: '80%',
-                // HERO-LOCKED: Match hero drop shadow
-                textShadow: '0 4px 12px rgba(0,0,0,0.5)', // drop-shadow-xl equivalent
-              },
-              children: title
-            }
-          },
-          // H2 Subtitle - Match hero h2_classes typography
-          subtitle && {
-            type: 'div',
-            props: {
-              style: {
-                // Extract from h2_classes: text-xl md:text-2xl text-white/80 mt-4
-                fontSize: 32, // Matches text-2xl (hero desktop size)
-                fontWeight: 400,
-                fontFamily: fontFamily,
-                color: 'rgba(255,255,255,0.8)', // text-white/80
-                marginTop: 16, // mt-4 - HERO-LOCKED: Closer spacing than default
-                textAlign: 'center',
-                maxWidth: '70%',
-              },
-              children: subtitle
-            }
-          }
-        ].filter(Boolean)
-      }
-    },
-    {
-      width: 1200,
-      height: 630,
-      fonts: fontData ? [
-        {
-          name: fontFamily,
-          data: fontData,
-          weight: 700,
-        }
-      ] : undefined
-    }
-  );
-};
-```
-
-**Key Implementation Notes (Astro-Specific):**
-
-1. **File Structure:** 
-   - Place OG endpoint at `src/pages/api/og.ts` (or `og.tsx` for JSX syntax)
-   - Astro automatically creates routes from `src/pages/` directory
-   - API routes must export named functions (`GET`, `POST`, etc.)
-
-2. **Astro API Route Syntax:**
-   - Must use `export const GET: APIRoute = async ({ request }) => { ... }`
-   - Must import `APIRoute` type from 'astro'
-   - Return `new ImageResponse()` directly (Astro handles the Response wrapper)
-
-3. **Local Resources (Astro):**
-   - Use `import.meta.url` for local files: `new URL('../../fonts/font.ttf', import.meta.url)`
-   - Or use `fetch` with `request.url` for public assets: `new URL('/fonts/font.ttf', request.url)`
-   - Local files can be loaded with `fs.readFile` if needed
-
-4. **Read from layout-manifest.json:** The OG renderer MUST read the hero section to extract typography and layout values.
-
-5. **Parse Tailwind classes:** Extract font family, weight, letter spacing, and line height from `h1_classes` and `h2_classes`.
-
-6. **Match hero positioning:** NOT vertically centered. Hero content is typically positioned lower (paddingTop: 200).
-
-7. **Match hero background:** Apply same gradient overlays and asset layers from hero `layers` array.
-
-8. **Contrast boost:** Apply +10-15% contrast increase (filter: 'contrast(1.12)') for social feed compression.
-
-9. **Comments required:** Code must explain why OG design diverges from generic layouts and why contrast differs.
-
-**Astro-Specific Requirements (from Vercel docs):**
-- Install `@vercel/og` explicitly: `npm install @vercel/og` (not included like Next.js)
-- Node.js 18+ required
-- Vercel adapter must be configured in `astro.config.mjs`
-- Runtime: Node.js (default for Astro on Vercel)
-- Add OG route to `robots.txt`: `Allow: /api/og/*`
-
-### Step 3: Create OG Image Variants
-
-**Different templates for different page types:**
-
-```typescript
-// src/utils/og-templates.ts
-export const ogTemplates = {
-  default: {
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-    titleColor: 'white',
-    subtitleColor: '#94a3b8',
-  },
-  blog: {
-    background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
-    titleColor: 'white',
-    subtitleColor: '#bfdbfe',
-    showAuthor: true,
-  },
-  service: {
-    background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)',
-    titleColor: 'white',
-    subtitleColor: '#a7f3d0',
-  },
-  location: {
-    background: 'linear-gradient(135deg, #7c2d12 0%, #ea580c 100%)',
-    titleColor: 'white',
-    subtitleColor: '#fed7aa',
-    showLocation: true,
-  }
-};
-```
-
-### Step 4: Add OG Route to robots.txt (Astro)
-
-**Important:** To avoid social media providers being unable to fetch your OG images, add the OG route to `robots.txt`:
-
-```txt
-# public/robots.txt
-User-agent: *
-Allow: /api/og/*
-```
-
-For Astro, create `public/robots.txt` manually or generate it via a route.
-
-### Step 5: Implement in SEO Component
+**Builder Agent Implementation:**
 
 ```astro
 ---
 // src/components/SEO.astro
 const { title, description, type = 'page' } = Astro.props;
 
-// Build OG image URL with parameters
-const ogImageUrl = new URL('/api/og', Astro.site);
-ogImageUrl.searchParams.set('title', title);
-ogImageUrl.searchParams.set('subtitle', description.slice(0, 100));
-ogImageUrl.searchParams.set('type', type);
-
-// Optional: Add image parameter if hero image should be included
-// ogImageUrl.searchParams.set('image', '/assets/hero-image.png');
+// Use static OG image from public directory
+const ogImageUrl = new URL('/og-image.png', Astro.site);
 ---
 
 <meta property="og:image" content={ogImageUrl.toString()} />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:type" content="image/png" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={type} />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content={ogImageUrl.toString()} />
 ```
 
-### Step 5: Validate OG Images
-
-**Validation checklist:**
-
-```typescript
-// src/utils/og-validator.ts
-export async function validateOGImage(url: string): Promise<{
-  valid: boolean;
-  errors: string[];
-}> {
-  const errors: string[] = [];
-  
-  try {
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      errors.push(`OG image returned ${response.status}`);
-      return { valid: false, errors };
-    }
-    
-    const contentType = response.headers.get('content-type');
-    if (!contentType?.includes('image')) {
-      errors.push(`Invalid content type: ${contentType}`);
-    }
-    
-    const contentLength = parseInt(response.headers.get('content-length') || '0');
-    if (contentLength > 8 * 1024 * 1024) {
-      errors.push(`Image too large: ${(contentLength / 1024 / 1024).toFixed(2)}MB`);
-    }
-    
-    // Check dimensions (would need to parse image)
-    // This is a simplified check
-    
-  } catch (error) {
-    errors.push(`Failed to fetch OG image: ${error}`);
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-}
-```
-
-### Step 6: Generate OG Checklist
-
-**og-checklist.md:**
-
-```markdown
-# OG Image Checklist
-
-## Configuration (Astro-Specific)
-- [ ] Node.js 18+ installed
-- [ ] @vercel/og installed (`npm install @vercel/og` - required for Astro)
-- [ ] Vercel adapter configured in `astro.config.mjs`
-- [ ] /api/og endpoint created at `src/pages/api/og.ts` (or `og.tsx`)
-- [ ] OG endpoint uses `export const GET: APIRoute` syntax
-- [ ] OG endpoint imports `APIRoute` type from 'astro'
-- [ ] **OG renderer is hero-locked (reads from layout-manifest.json)**
-- [ ] **OG typography matches hero h1_classes and h2_classes**
-- [ ] **OG layout positioning matches hero (not generic centered)**
-- [ ] **OG background treatment matches hero layers**
-- [ ] Design tokens applied
-- [ ] robots.txt includes `Allow: /api/og/*`
-
-## Pages Covered
-- [ ] Homepage
-- [ ] About page
-- [ ] Service pages
-- [ ] Blog posts
-- [ ] Location pages
-- [ ] Contact page
-
-## Validation
-- [ ] All images 1200x630
-- [ ] All images under 8MB
-- [ ] All images load correctly
-- [ ] Tested with social preview tools
-
-## Social Preview Testing
-- [ ] Facebook Sharing Debugger
-- [ ] Twitter Card Validator
-- [ ] LinkedIn Post Inspector
-```
-
----
-
-## Hard Limits
-
-- **No missing OG images** on public pages
-- **No incorrect dimensions** — Must be 1200x630
-- **No broken OG URLs** — Must return valid image
-- **No generic OG layouts** — Must be hero-locked (read from layout-manifest.json)
-- **No mismatched typography** — Must match hero h1_classes and h2_classes
-- **No generic centered layouts** — Must match hero positioning (not vertically centered)
-
-## Astro-Specific Limitations
-
-Based on [Vercel OG documentation](https://vercel.com/docs/og-image-generation):
-
-- **Font formats:** Only `ttf`, `otf`, and `woff` supported. `ttf` or `otf` preferred for speed
-- **CSS support:** Only flexbox (`display: flex`) and subset of CSS properties. Grid layouts not supported
-- **Maximum bundle size:** 500KB (includes JSX, CSS, fonts, images, assets)
-- **Runtime:** Node.js runtime required (default for Astro on Vercel)
-- **File extensions:** Use `.ts` or `.tsx` for API routes (`.tsx` if using JSX syntax in ImageResponse)
+**Key Points:**
+- All pages use the same `og-image.png` from `public/og-image.png`
+- OG image URL is absolute (uses `Astro.site`)
+- Meta tags include required OG properties
+- Twitter Card meta tags included
 
 ---
 
@@ -478,10 +105,36 @@ Based on [Vercel OG documentation](https://vercel.com/docs/og-image-generation):
 
 | Output | Description |
 |--------|-------------|
-| `/api/og` endpoint | **Hero-locked** dynamic OG image generation (reads from layout-manifest.json) |
-| OG images per page | Generated for all public pages (visually matching hero) |
-| OG meta tags | Implemented in SEO component |
-| `og-checklist.md` | Verification checklist (includes hero-locked verification) |
+| `public/og-image.png` | Static OG image (1200x630) created by user |
+| OG meta tags | Implemented in SEO component (points to `/og-image.png`) |
+| `og-checklist.md` | Verification checklist |
+
+---
+
+## Verification Checklist
+
+**User Task:**
+- [ ] Screenshot of homepage hero taken
+- [ ] Image resized to exactly 1200x630
+- [ ] Image saved as `og-image.png` in `public/` directory
+- [ ] Image quality is good (readable text, good contrast)
+
+**Builder Agent Task:**
+- [ ] `public/og-image.png` exists
+- [ ] OG meta tags present on all public pages
+- [ ] OG image URL points to `/og-image.png`
+- [ ] OG image dimensions are 1200x630 (verify in meta tags)
+- [ ] Twitter Card meta tags present
+- [ ] OG image URL is absolute (uses `Astro.site`)
+
+---
+
+## Hard Limits
+
+- **No missing OG images** — `public/og-image.png` must exist
+- **No incorrect dimensions** — Must be exactly 1200x630
+- **No broken OG URLs** — Image must be accessible at `/og-image.png`
+- **No missing meta tags** — All public pages must have OG meta tags
 
 ---
 
@@ -489,9 +142,10 @@ Based on [Vercel OG documentation](https://vercel.com/docs/og-image-generation):
 
 | Condition | Result |
 |-----------|--------|
-| Missing OG image on public page | **FLAG** — Must fix |
-| Incorrect dimensions | **STOP** — Must fix |
-| OG endpoint returns error | **STOP** — Must fix |
+| Missing `og-image.png` file | **STOP** — User must create image |
+| Incorrect dimensions | **STOP** — User must resize to 1200x630 |
+| OG image not accessible | **STOP** — Check file path and permissions |
+| Missing OG meta tags | **STOP** — Builder must add meta tags |
 
 ---
 
@@ -508,33 +162,29 @@ Based on [Vercel OG documentation](https://vercel.com/docs/og-image-generation):
 
 ## Success Criteria
 
-Vercel OG Image Skill is complete when:
+OG Image Skill is complete when:
 
-- [ ] `/api/og` endpoint working (Astro: `src/pages/api/og.ts`)
-- [ ] **OG renderer is hero-locked (reads from layout-manifest.json)**
-- [ ] **OG typography matches hero h1_classes and h2_classes**
-- [ ] **OG layout positioning matches hero (not generic centered)**
-- [ ] **OG background treatment matches hero layers**
-- [ ] All public pages have OG images
-- [ ] Images are 1200x630
-- [ ] Design tokens applied
-- [ ] Meta tags implemented in SEO component
-- [ ] robots.txt includes `Allow: /api/og/*` (Astro requirement)
+- [ ] `public/og-image.png` exists (1200x630)
+- [ ] OG meta tags implemented in SEO component
+- [ ] OG image URL is accessible (`/og-image.png`)
+- [ ] All public pages have OG meta tags
 - [ ] Tested with social preview tools
 - [ ] `og-checklist.md` completed
 
-## Astro-Specific Notes
+---
 
-**File Structure:**
-- API routes: `src/pages/api/og.ts` or `src/pages/api/og.tsx`
-- Astro automatically creates routes from `src/pages/` directory
-- Use `.tsx` extension if using JSX syntax in ImageResponse
+## Notes
 
-**Runtime:**
-- Node.js runtime (default for Astro on Vercel)
-- Local resources: Use `import.meta.url` for local files
-- Public assets: Use `fetch` with `request.url` for public paths
+**Why Static Images:**
+- Simpler implementation (no API endpoints, no dependencies)
+- Faster page loads (no dynamic image generation)
+- Easier to maintain (single image file)
+- User has full control over the visual design
 
-**Reference:**
-- [Vercel OG Image Generation Docs](https://vercel.com/docs/og-image-generation)
-- Astro-specific: Must install `@vercel/og` explicitly (not included like Next.js)
+**Limitations:**
+- All pages use the same OG image (not page-specific)
+- Requires manual update if hero design changes
+- User must have image editing tools
+
+**Future Enhancement:**
+If page-specific OG images are needed later, this can be extended to support multiple static images or a dynamic approach.

@@ -305,108 +305,81 @@ export default {
 }
 ```
 
-### Rule 7: Open Graph Images (MANDATORY — @vercel/og Required)
+### Rule 7: Open Graph Images (MANDATORY — Static Image)
 
 **Open Graph images are REQUIRED for all public pages before Build phase can complete.**
 
-**Installation (MANDATORY FIRST STEP):**
+**User Task (MUST BE COMPLETED FIRST):**
 
-1. **Verify @vercel/og is installed:**
-   ```bash
-   npm list @vercel/og
-   ```
+1. **Screenshot the homepage hero section:**
+   - Navigate to the homepage in browser
+   - Take a full screenshot of the hero section (main viewport area)
+   - Ensure hero content (headline, subtitle, CTA) is visible and well-composed
 
-2. **If NOT installed, install immediately:**
-   ```bash
-   npm install @vercel/og
-   ```
+2. **Resize the screenshot to 1200x630:**
+   - Open screenshot in image editor (Photoshop, GIMP, Preview, online tools, etc.)
+   - Resize/crop image to exactly **1200 pixels wide × 630 pixels tall**
+   - Maintain aspect ratio and center the hero content
+   - Ensure text is readable and not cut off
 
-3. **Confirm installation in package.json:**
-   - Check `package.json` contains `"@vercel/og": "^X.X.X"` in dependencies
-   - If missing, installation failed — retry installation
+3. **Save as `og-image.png`:**
+   - Save resized image as `og-image.png`
+   - Place in `public/` directory: `public/og-image.png`
 
-**Implementation Requirements:**
+**Builder Agent Implementation Requirements:**
 
-1. **Create /api/og endpoint:**
-   - Location: `src/pages/api/og.ts` (or appropriate API route location)
-   - Must use `@vercel/og` ImageResponse
-   - Must generate 1200x630 images
-   - Must accept dynamic parameters (title, description, type)
+1. **Verify `public/og-image.png` exists:**
+   - Check that `public/og-image.png` file exists
+   - Verify image dimensions are 1200x630 (check file properties or meta tags)
+   - If missing, STOP and instruct user to create the image
 
 2. **Add OG meta tags to all pages:**
-   - `og:image` — Points to OG image endpoint with page-specific params
+   - `og:image` — Points to `/og-image.png` (absolute URL using `Astro.site`)
    - `og:title` — Page title
    - `og:description` — Page description
    - `og:type` — Page type (website, article, etc.)
    - `og:image:width` — 1200
    - `og:image:height` — 630
+   - `og:image:type` — image/png
    - `twitter:card` — summary_large_image
    - `twitter:image` — Same as og:image
 
-3. **Verify OG images are unique per page:**
-   - Each page must have unique OG image (not all using same default)
-   - Use page-specific title/description in OG image generation
-   - Test OG image endpoint returns valid 1200x630 image
-
-4. **Apply design tokens to OG images:**
-   - Use colors from `design-tokens.json`
-   - Use fonts from `design-tokens.json`
-   - Match site branding in OG image design
-
-5. **Hero-Locked Visual Consistency (MANDATORY):**
-   - **OG images must visually match the homepage hero section**
-   - **Typography must mirror hero specifications from `layout-manifest.json`:**
-     - Read `h1_classes` and `h2_classes` from hero section in `layout-manifest.json`
-     - Extract font family, font weight, letter spacing, line height
-     - Apply exact same typography values to OG image H1 and H2
-   - **Layout positioning must match hero:**
-     - NOT vertically centered (hero content is typically positioned lower)
-     - Headline positioned slightly lower than center
-     - Subtitle closer to headline than default spacing
-   - **Background treatment must match hero layers:**
-     - Apply same gradient overlays/vignettes from hero layers
-     - Match background image treatment if hero uses asset layers
-     - Increase contrast +10-15% for social feed compression (images compress in feeds)
-   - **OG renderer is HERO-LOCKED by default:**
-     - Assumes hero usage unless explicitly changed later
-     - No generic layouts or flexible design options
-     - This is a cinematic hero snapshot, not a generic banner
-   - **Comments in OG file must explain:**
-     - Why OG design intentionally diverges from generic layouts
-     - Why contrast and spacing differ slightly from live hero (social feed compression)
-
-**Implementation Notes:**
-- OG endpoint should read hero section from `src/data/layout-manifest.json`
-- Extract typography values from `content.h1_classes` and `content.h2_classes`
-- Parse Tailwind classes to extract: font family, weight, letter spacing, line height
-- Match hero background layers (gradients, overlays) from `layers` array
-- Apply +10-15% contrast boost for social feed visibility
+3. **Implement in SEO component:**
+   ```astro
+   ---
+   // src/components/SEO.astro
+   const { title, description, type = 'page' } = Astro.props;
+   const ogImageUrl = new URL('/og-image.png', Astro.site);
+   ---
+   
+   <meta property="og:image" content={ogImageUrl.toString()} />
+   <meta property="og:image:width" content="1200" />
+   <meta property="og:image:height" content="630" />
+   <meta property="og:image:type" content="image/png" />
+   <meta property="og:title" content={title} />
+   <meta property="og:description" content={description} />
+   <meta property="og:type" content={type} />
+   <meta name="twitter:card" content="summary_large_image" />
+   <meta name="twitter:image" content={ogImageUrl.toString()} />
+   ```
 
 **Verification Checklist:**
-- [ ] @vercel/og installed (package.json verified)
-- [ ] /api/og endpoint exists and functional
+- [ ] `public/og-image.png` exists (user-created)
+- [ ] OG image is exactly 1200x630 dimensions
 - [ ] OG meta tags present on all public pages
-- [ ] OG images are 1200x630 dimensions
-- [ ] OG image URLs are valid and accessible
+- [ ] OG image URL points to `/og-image.png` (absolute URL)
+- [ ] OG image URL is accessible (test in browser)
 - [ ] Twitter Card meta tags present
-- [ ] All pages have unique OG images
-- [ ] Design tokens applied to OG images
-- [ ] **OG renderer reads hero section from layout-manifest.json**
-- [ ] **OG typography matches hero h1_classes and h2_classes**
-- [ ] **OG layout positioning matches hero (not generic centered)**
-- [ ] **OG background treatment matches hero layers**
-- [ ] **OG contrast increased +10-15% for social feed compression**
+- [ ] All required OG meta tags present (og:image, og:title, og:description, og:type)
 
 **If ANY check fails:**
 → STOP — Cannot advance to Content phase without proper OG image setup
-→ Install @vercel/og if missing
-→ Create /api/og endpoint
-→ Add OG meta tags to all pages
-→ Verify 1200x630 dimensions
-→ **Implement hero-locked OG renderer (read from layout-manifest.json)**
-→ **Match hero typography, layout, and background treatment**
+→ If `og-image.png` missing: Instruct user to screenshot hero, resize to 1200x630, save as `public/og-image.png`
+→ If meta tags missing: Add OG meta tags to SEO component
+→ Verify image is accessible at `/og-image.png`
+→ Test with social preview tools
 
-**This is mandatory for social sharing and SEO. Every public page MUST have OG images that visually match the homepage hero section.**
+**This is mandatory for social sharing and SEO. Every public page MUST have OG images.**
 
 ---
 
@@ -422,7 +395,6 @@ export default {
 - **Deviate from `layout-manifest.json` structure**
 - **Ignore missing assets (must create placeholders)**
 - **Implement logo in header/navigation without homepage link**
-- **Skip @vercel/og installation (MANDATORY for all sites)**
 - **Deploy pages without OG images (MANDATORY for all public pages)**
 
 ---
@@ -456,7 +428,7 @@ Builder Agent is the primary owner of:
 | Webhook/Forms | Implements form handling |
 | Local SEO Location Builder | Generates location pages |
 | Schema/SEO Metadata | Implements SEO requirements |
-| Vercel OG Image | Creates OG image endpoint |
+| OG Image (Static) | Verifies user-created og-image.png and adds meta tags |
 | CMS/Content Connector | Sets up content system |
 | Redirects | Implements URL redirects |
 

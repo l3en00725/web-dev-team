@@ -305,10 +305,12 @@ Consider:
 
 ### Step 7.7: OG Images
 
-**Skill:** Vercel OG Image  
-**Owner:** Builder Agent
+**Skill:** OG Image (Static)  
+**Owner:** User (updates image if needed), Builder Agent (verifies meta tags)
 
-- [ ] OG images implemented
+- [ ] `public/og-image.png` exists (or user updates if hero changed)
+- [ ] OG image is exactly 1200x630
+- [ ] OG meta tags present on all pages
 - [ ] Social preview consistency maintained
 
 ---

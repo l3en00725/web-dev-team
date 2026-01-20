@@ -48,7 +48,7 @@ The Orchestrator is a **PROMPT ROUTER**, not an executor.
 | 3. Design Tokens | Design/Imagery | Gemini | design-tokens.json, effects.md |
 | **3A. Design Inspiration Review** | Design/Imagery | **Gemini (OUTSIDE Cursor)** | design-analysis.md reviewed and saved |
 | **4. Imagery** | Design/Imagery | **Claude + OpenAI API** | image-prompts.json, /assets/images/ populated, image-manifest.json |
-| **5. Build** | Builder | Cursor Auto | All pages built, **GEO schema verified (if local SEO), structured data present, mobile optimization verified, icon system verified, OG images verified (@vercel/og installed)** |
+| **5. Build** | Builder | Cursor Auto | All pages built, **GEO schema verified (if local SEO), structured data present, mobile optimization verified, icon system verified, OG images verified (og-image.png exists)** |
 | **6. Content** | Content | Claude | All content written, **AI/LLM optimization verified (freshness, Q&A format, llms.txt)** |
 | 5. Build | Builder | Cursor Auto | All pages created, components working |
 | 6. Content | Content | Claude | All page copy written |
@@ -527,38 +527,33 @@ If ANY check fails:
 🚫 HARD GATE — Cannot proceed to Content phase without Open Graph verification
 
 Required checks:
-1. ✅ @vercel/og package installed (check package.json)
-2. ✅ /api/og endpoint exists and is functional
+1. ✅ public/og-image.png exists (user-created static image)
+2. ✅ OG image is exactly 1200x630 dimensions (verify file properties)
 3. ✅ OG meta tags present on all public pages (og:image, og:title, og:description, og:type)
-4. ✅ OG images are 1200x630 dimensions (verify via endpoint or meta tags)
-5. ✅ OG image URLs are valid and accessible
+4. ✅ OG image URL points to /og-image.png (absolute URL using Astro.site)
+5. ✅ OG image URL is accessible (test in browser: /og-image.png)
 6. ✅ Twitter Card meta tags present (twitter:card, twitter:image)
-7. ✅ All pages have unique OG images (not using default/placeholder)
-8. ✅ **OG renderer is HERO-LOCKED (reads from layout-manifest.json)**
-9. ✅ **OG typography matches hero h1_classes and h2_classes**
-10. ✅ **OG layout positioning matches hero (not generic centered)**
-11. ✅ **OG background treatment matches hero layers**
+7. ✅ OG meta tags include dimensions (og:image:width: 1200, og:image:height: 630)
 
 Verification:
-- Check package.json for "@vercel/og" dependency
-- Verify /api/og endpoint exists (src/pages/api/og.ts or similar)
+- Check that public/og-image.png file exists
+- Verify image dimensions are 1200x630 (check file properties or image metadata)
 - Check SEO component or layout for OG meta tags
-- Test OG image endpoint returns valid image (1200x630)
-- Verify OG meta tags in page source (og:image, og:title, og:description)
+- Test OG image URL in browser (should load /og-image.png)
+- Verify OG meta tags in page source (og:image, og:title, og:description, og:type)
 - Check Twitter Card meta tags are present
-- Verify OG images are unique per page (not all using same default)
-- **Check OG endpoint code reads hero section from layout-manifest.json**
-- **Verify OG typography values match hero h1_classes and h2_classes**
-- **Verify OG layout is NOT vertically centered (matches hero positioning)**
-- **Verify OG background matches hero layers (gradients, overlays)**
+- Verify og:image URL is absolute (uses Astro.site)
 
 If ANY check fails:
-→ STOP — Builder must install @vercel/og and configure OG images before proceeding
-→ Provide exact instructions: "Install @vercel/og. Create /api/og endpoint. Add OG meta tags to all pages. Verify 1200x630 dimensions. Implement hero-locked OG renderer that reads from layout-manifest.json and matches hero typography, layout, and background treatment."
+→ STOP — Builder must verify og-image.png exists and add OG meta tags before proceeding
+→ If og-image.png missing: Instruct user to "Screenshot the homepage hero section, resize to exactly 1200x630, and save as public/og-image.png"
+→ If meta tags missing: Add OG meta tags to SEO component pointing to /og-image.png
+→ Verify image is accessible at /og-image.png
+→ Test with social preview tools
 ```
 
-**Critical Installation Step:**
-**The Orchestrator MUST verify @vercel/og is installed EVERY TIME before Build phase completes.**
+**Critical User Task:**
+**The user MUST create og-image.png before Build phase can complete. The Orchestrator MUST verify this file exists.**
 
 **Gate Message:**
 ```
@@ -595,21 +590,16 @@ Icon System Verification (MANDATORY):
 - [ ] Icon usage documented in /imagery/icons.md (if exceptions exist)
 
 Open Graph (OG) Image Verification (MANDATORY):
-- [ ] @vercel/og package installed (package.json verified)
-- [ ] /api/og endpoint exists and functional
+- [ ] public/og-image.png exists (user-created)
+- [ ] OG image is exactly 1200x630 dimensions
 - [ ] OG meta tags present on all pages (og:image, og:title, og:description, og:type)
-- [ ] OG images are 1200x630 dimensions
-- [ ] OG image URLs are valid and accessible
-- [ ] Twitter Card meta tags present (twitter:card, twitter:image)
-- [ ] All pages have unique OG images (not using default/placeholder)
-- [ ] **OG renderer is HERO-LOCKED (reads from layout-manifest.json)**
-- [ ] **OG typography matches hero h1_classes and h2_classes**
-- [ ] **OG layout positioning matches hero (not generic centered)**
-- [ ] **OG background treatment matches hero layers**
+- [ ] OG image URL points to /og-image.png (absolute URL)
+- [ ] OG image URL is accessible (test in browser)
+- [ ] Twitter Card meta tags present
 
 Status: [PASS / FAIL]
 
-If FAIL: Cannot proceed. Fix missing schema, mobile optimization, icon system, or OG image issues before advancing.
+If FAIL: Cannot proceed. Fix missing schema, mobile optimization, icon system, or OG image issues before advancing. For OG images: User must create public/og-image.png (screenshot hero, resize to 1200x630).
 ```
 
 ---
