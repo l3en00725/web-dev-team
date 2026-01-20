@@ -4,6 +4,7 @@ description: Generates Open Graph images for social sharing using Vercel OG. Use
 owner: Builder Agent (implements), Design Agent (provides direction)
 trigger: During build — required for all public pages
 llm: Cursor Auto (Builder), Gemini (Design)
+framework: Astro (required)
 ---
 
 # Vercel OG Image Skill
@@ -11,6 +12,8 @@ llm: Cursor Auto (Builder), Gemini (Design)
 ## Purpose
 
 Automated OG image generation for consistent social previews. Ensures every public page has a properly branded, correctly sized Open Graph image.
+
+**Framework:** This skill is specifically for **Astro** projects. For Astro, you must install `@vercel/og` explicitly (it's not included like Next.js).
 
 ---
 
@@ -22,8 +25,14 @@ During build — required for all public pages.
 
 ## Prerequisites
 
+**Installation (Astro-specific):**
+- [ ] Node.js 18+ installed
+- [ ] `@vercel/og` package installed: `npm install @vercel/og`
+- [ ] Astro project configured with Vercel adapter
+
 From Design Agent:
 - [ ] `design-tokens.json` — Colors, fonts
+- [ ] `layout-manifest.json` — Hero section for hero-locked OG renderer
 - [ ] OG image direction — Layout, style preferences
 
 ---
@@ -78,10 +87,18 @@ From Design Agent:
 
 ### Step 3: Create Hero-Locked OG Image Endpoint
 
-**Using @vercel/og with Hero-Locked Implementation:**
+**Astro-Specific Requirements:**
+- File location: `src/pages/api/og.ts` (or `og.tsx` if using JSX syntax)
+- Must use `APIRoute` type from 'astro'
+- Must use `export const GET: APIRoute` syntax
+- Must install `@vercel/og` explicitly (not included like Next.js)
+- Use `import.meta.url` for local resources (fonts, images)
+- Return `new ImageResponse()` directly (not wrapped in Response)
+
+**Using @vercel/og with Hero-Locked Implementation (Astro):**
 
 ```typescript
-// src/pages/api/og.ts
+// src/pages/api/og.ts (or og.tsx for JSX syntax)
 import { ImageResponse } from '@vercel/og';
 import type { APIRoute } from 'astro';
 import layoutManifest from '../../data/layout-manifest.json';
@@ -133,9 +150,15 @@ export const GET: APIRoute = async ({ request }) => {
     : '#0f172a';
   
   // Load hero font (must match hero font family)
+  // Astro: Use import.meta.url for local resources, or fetch for remote
   const fontData = await fetch(
-    new URL(`/fonts/${fontFamily}-Bold.ttf`, request.url)
-  ).then(res => res.arrayBuffer()).catch(() => null);
+    new URL(`../../fonts/${fontFamily}-Bold.ttf`, import.meta.url)
+  ).then(res => res.arrayBuffer()).catch(() => {
+    // Fallback: try public path
+    return fetch(
+      new URL(`/fonts/${fontFamily}-Bold.ttf`, request.url)
+    ).then(res => res.arrayBuffer()).catch(() => null);
+  });
   
   return new ImageResponse(
     {
@@ -238,19 +261,41 @@ export const GET: APIRoute = async ({ request }) => {
 };
 ```
 
-**Key Implementation Notes:**
+**Key Implementation Notes (Astro-Specific):**
 
-1. **Read from layout-manifest.json:** The OG renderer MUST read the hero section to extract typography and layout values.
+1. **File Structure:** 
+   - Place OG endpoint at `src/pages/api/og.ts` (or `og.tsx` for JSX syntax)
+   - Astro automatically creates routes from `src/pages/` directory
+   - API routes must export named functions (`GET`, `POST`, etc.)
 
-2. **Parse Tailwind classes:** Extract font family, weight, letter spacing, and line height from `h1_classes` and `h2_classes`.
+2. **Astro API Route Syntax:**
+   - Must use `export const GET: APIRoute = async ({ request }) => { ... }`
+   - Must import `APIRoute` type from 'astro'
+   - Return `new ImageResponse()` directly (Astro handles the Response wrapper)
 
-3. **Match hero positioning:** NOT vertically centered. Hero content is typically positioned lower (paddingTop: 200).
+3. **Local Resources (Astro):**
+   - Use `import.meta.url` for local files: `new URL('../../fonts/font.ttf', import.meta.url)`
+   - Or use `fetch` with `request.url` for public assets: `new URL('/fonts/font.ttf', request.url)`
+   - Local files can be loaded with `fs.readFile` if needed
 
-4. **Match hero background:** Apply same gradient overlays and asset layers from hero `layers` array.
+4. **Read from layout-manifest.json:** The OG renderer MUST read the hero section to extract typography and layout values.
 
-5. **Contrast boost:** Apply +10-15% contrast increase (filter: 'contrast(1.12)') for social feed compression.
+5. **Parse Tailwind classes:** Extract font family, weight, letter spacing, and line height from `h1_classes` and `h2_classes`.
 
-6. **Comments required:** Code must explain why OG design diverges from generic layouts and why contrast differs.
+6. **Match hero positioning:** NOT vertically centered. Hero content is typically positioned lower (paddingTop: 200).
+
+7. **Match hero background:** Apply same gradient overlays and asset layers from hero `layers` array.
+
+8. **Contrast boost:** Apply +10-15% contrast increase (filter: 'contrast(1.12)') for social feed compression.
+
+9. **Comments required:** Code must explain why OG design diverges from generic layouts and why contrast differs.
+
+**Astro-Specific Requirements (from Vercel docs):**
+- Install `@vercel/og` explicitly: `npm install @vercel/og` (not included like Next.js)
+- Node.js 18+ required
+- Vercel adapter must be configured in `astro.config.mjs`
+- Runtime: Node.js (default for Astro on Vercel)
+- Add OG route to `robots.txt`: `Allow: /api/og/*`
 
 ### Step 3: Create OG Image Variants
 
@@ -284,23 +329,40 @@ export const ogTemplates = {
 };
 ```
 
-### Step 4: Implement in SEO Component
+### Step 4: Add OG Route to robots.txt (Astro)
+
+**Important:** To avoid social media providers being unable to fetch your OG images, add the OG route to `robots.txt`:
+
+```txt
+# public/robots.txt
+User-agent: *
+Allow: /api/og/*
+```
+
+For Astro, create `public/robots.txt` manually or generate it via a route.
+
+### Step 5: Implement in SEO Component
 
 ```astro
 ---
 // src/components/SEO.astro
 const { title, description, type = 'page' } = Astro.props;
 
+// Build OG image URL with parameters
 const ogImageUrl = new URL('/api/og', Astro.site);
 ogImageUrl.searchParams.set('title', title);
 ogImageUrl.searchParams.set('subtitle', description.slice(0, 100));
 ogImageUrl.searchParams.set('type', type);
+
+// Optional: Add image parameter if hero image should be included
+// ogImageUrl.searchParams.set('image', '/assets/hero-image.png');
 ---
 
 <meta property="og:image" content={ogImageUrl.toString()} />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:image:type" content="image/png" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content={ogImageUrl.toString()} />
 ```
 
@@ -355,14 +417,19 @@ export async function validateOGImage(url: string): Promise<{
 ```markdown
 # OG Image Checklist
 
-## Configuration
-- [ ] @vercel/og installed
-- [ ] /api/og endpoint created
+## Configuration (Astro-Specific)
+- [ ] Node.js 18+ installed
+- [ ] @vercel/og installed (`npm install @vercel/og` - required for Astro)
+- [ ] Vercel adapter configured in `astro.config.mjs`
+- [ ] /api/og endpoint created at `src/pages/api/og.ts` (or `og.tsx`)
+- [ ] OG endpoint uses `export const GET: APIRoute` syntax
+- [ ] OG endpoint imports `APIRoute` type from 'astro'
 - [ ] **OG renderer is hero-locked (reads from layout-manifest.json)**
 - [ ] **OG typography matches hero h1_classes and h2_classes**
 - [ ] **OG layout positioning matches hero (not generic centered)**
 - [ ] **OG background treatment matches hero layers**
 - [ ] Design tokens applied
+- [ ] robots.txt includes `Allow: /api/og/*`
 
 ## Pages Covered
 - [ ] Homepage
@@ -394,6 +461,16 @@ export async function validateOGImage(url: string): Promise<{
 - **No generic OG layouts** — Must be hero-locked (read from layout-manifest.json)
 - **No mismatched typography** — Must match hero h1_classes and h2_classes
 - **No generic centered layouts** — Must match hero positioning (not vertically centered)
+
+## Astro-Specific Limitations
+
+Based on [Vercel OG documentation](https://vercel.com/docs/og-image-generation):
+
+- **Font formats:** Only `ttf`, `otf`, and `woff` supported. `ttf` or `otf` preferred for speed
+- **CSS support:** Only flexbox (`display: flex`) and subset of CSS properties. Grid layouts not supported
+- **Maximum bundle size:** 500KB (includes JSX, CSS, fonts, images, assets)
+- **Runtime:** Node.js runtime required (default for Astro on Vercel)
+- **File extensions:** Use `.ts` or `.tsx` for API routes (`.tsx` if using JSX syntax in ImageResponse)
 
 ---
 
@@ -433,7 +510,7 @@ export async function validateOGImage(url: string): Promise<{
 
 Vercel OG Image Skill is complete when:
 
-- [ ] `/api/og` endpoint working
+- [ ] `/api/og` endpoint working (Astro: `src/pages/api/og.ts`)
 - [ ] **OG renderer is hero-locked (reads from layout-manifest.json)**
 - [ ] **OG typography matches hero h1_classes and h2_classes**
 - [ ] **OG layout positioning matches hero (not generic centered)**
@@ -441,6 +518,23 @@ Vercel OG Image Skill is complete when:
 - [ ] All public pages have OG images
 - [ ] Images are 1200x630
 - [ ] Design tokens applied
-- [ ] Meta tags implemented
+- [ ] Meta tags implemented in SEO component
+- [ ] robots.txt includes `Allow: /api/og/*` (Astro requirement)
 - [ ] Tested with social preview tools
 - [ ] `og-checklist.md` completed
+
+## Astro-Specific Notes
+
+**File Structure:**
+- API routes: `src/pages/api/og.ts` or `src/pages/api/og.tsx`
+- Astro automatically creates routes from `src/pages/` directory
+- Use `.tsx` extension if using JSX syntax in ImageResponse
+
+**Runtime:**
+- Node.js runtime (default for Astro on Vercel)
+- Local resources: Use `import.meta.url` for local files
+- Public assets: Use `fetch` with `request.url` for public paths
+
+**Reference:**
+- [Vercel OG Image Generation Docs](https://vercel.com/docs/og-image-generation)
+- Astro-specific: Must install `@vercel/og` explicitly (not included like Next.js)
