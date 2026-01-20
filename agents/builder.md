@@ -353,6 +353,35 @@ export default {
    - Use fonts from `design-tokens.json`
    - Match site branding in OG image design
 
+5. **Hero-Locked Visual Consistency (MANDATORY):**
+   - **OG images must visually match the homepage hero section**
+   - **Typography must mirror hero specifications from `layout-manifest.json`:**
+     - Read `h1_classes` and `h2_classes` from hero section in `layout-manifest.json`
+     - Extract font family, font weight, letter spacing, line height
+     - Apply exact same typography values to OG image H1 and H2
+   - **Layout positioning must match hero:**
+     - NOT vertically centered (hero content is typically positioned lower)
+     - Headline positioned slightly lower than center
+     - Subtitle closer to headline than default spacing
+   - **Background treatment must match hero layers:**
+     - Apply same gradient overlays/vignettes from hero layers
+     - Match background image treatment if hero uses asset layers
+     - Increase contrast +10-15% for social feed compression (images compress in feeds)
+   - **OG renderer is HERO-LOCKED by default:**
+     - Assumes hero usage unless explicitly changed later
+     - No generic layouts or flexible design options
+     - This is a cinematic hero snapshot, not a generic banner
+   - **Comments in OG file must explain:**
+     - Why OG design intentionally diverges from generic layouts
+     - Why contrast and spacing differ slightly from live hero (social feed compression)
+
+**Implementation Notes:**
+- OG endpoint should read hero section from `src/data/layout-manifest.json`
+- Extract typography values from `content.h1_classes` and `content.h2_classes`
+- Parse Tailwind classes to extract: font family, weight, letter spacing, line height
+- Match hero background layers (gradients, overlays) from `layers` array
+- Apply +10-15% contrast boost for social feed visibility
+
 **Verification Checklist:**
 - [ ] @vercel/og installed (package.json verified)
 - [ ] /api/og endpoint exists and functional
@@ -362,6 +391,11 @@ export default {
 - [ ] Twitter Card meta tags present
 - [ ] All pages have unique OG images
 - [ ] Design tokens applied to OG images
+- [ ] **OG renderer reads hero section from layout-manifest.json**
+- [ ] **OG typography matches hero h1_classes and h2_classes**
+- [ ] **OG layout positioning matches hero (not generic centered)**
+- [ ] **OG background treatment matches hero layers**
+- [ ] **OG contrast increased +10-15% for social feed compression**
 
 **If ANY check fails:**
 → STOP — Cannot advance to Content phase without proper OG image setup
@@ -369,8 +403,10 @@ export default {
 → Create /api/og endpoint
 → Add OG meta tags to all pages
 → Verify 1200x630 dimensions
+→ **Implement hero-locked OG renderer (read from layout-manifest.json)**
+→ **Match hero typography, layout, and background treatment**
 
-**This is mandatory for social sharing and SEO. Every public page MUST have OG images.**
+**This is mandatory for social sharing and SEO. Every public page MUST have OG images that visually match the homepage hero section.**
 
 ---
 

@@ -534,6 +534,10 @@ Required checks:
 5. ✅ OG image URLs are valid and accessible
 6. ✅ Twitter Card meta tags present (twitter:card, twitter:image)
 7. ✅ All pages have unique OG images (not using default/placeholder)
+8. ✅ **OG renderer is HERO-LOCKED (reads from layout-manifest.json)**
+9. ✅ **OG typography matches hero h1_classes and h2_classes**
+10. ✅ **OG layout positioning matches hero (not generic centered)**
+11. ✅ **OG background treatment matches hero layers**
 
 Verification:
 - Check package.json for "@vercel/og" dependency
@@ -543,10 +547,14 @@ Verification:
 - Verify OG meta tags in page source (og:image, og:title, og:description)
 - Check Twitter Card meta tags are present
 - Verify OG images are unique per page (not all using same default)
+- **Check OG endpoint code reads hero section from layout-manifest.json**
+- **Verify OG typography values match hero h1_classes and h2_classes**
+- **Verify OG layout is NOT vertically centered (matches hero positioning)**
+- **Verify OG background matches hero layers (gradients, overlays)**
 
 If ANY check fails:
 → STOP — Builder must install @vercel/og and configure OG images before proceeding
-→ Provide exact instructions: "Install @vercel/og. Create /api/og endpoint. Add OG meta tags to all pages. Verify 1200x630 dimensions."
+→ Provide exact instructions: "Install @vercel/og. Create /api/og endpoint. Add OG meta tags to all pages. Verify 1200x630 dimensions. Implement hero-locked OG renderer that reads from layout-manifest.json and matches hero typography, layout, and background treatment."
 ```
 
 **Critical Installation Step:**
@@ -594,6 +602,10 @@ Open Graph (OG) Image Verification (MANDATORY):
 - [ ] OG image URLs are valid and accessible
 - [ ] Twitter Card meta tags present (twitter:card, twitter:image)
 - [ ] All pages have unique OG images (not using default/placeholder)
+- [ ] **OG renderer is HERO-LOCKED (reads from layout-manifest.json)**
+- [ ] **OG typography matches hero h1_classes and h2_classes**
+- [ ] **OG layout positioning matches hero (not generic centered)**
+- [ ] **OG background treatment matches hero layers**
 
 Status: [PASS / FAIL]
 
