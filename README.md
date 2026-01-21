@@ -126,13 +126,14 @@ See `/agents/` for full agent definitions.
 | **Local SEO Location Builder** | Generates location pages at scale |
 | **Schema/SEO Metadata** | Implements SEO requirements |
 | **PageSpeed Pre-Commit** | Blocks deploy if < 95 score |
-| **Vercel OG Image** | Dynamic social preview images |
+| **OG Image (Static)** | Static social preview images (user-created) |
 | **Design System** | Converts inspiration to tokens |
 | **Imagery Workflow** | Image generation and optimization |
 | **Pixels/Media API** | Stock photo integration |
 | **Admin Dashboard** | Full backend for site management |
 | **CMS/Content Connector** | Structured content system |
 | **Social Publishing** | LinkedIn and Medium distribution |
+| **Supabase OAuth** | Google OAuth authentication setup |
 | **Redirects** | URL mapping for rebuilds |
 
 See `/skills/` for full skill specifications.

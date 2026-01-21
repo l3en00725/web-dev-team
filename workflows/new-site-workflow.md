@@ -666,6 +666,31 @@ Before Content phase can complete:
 **Skill:** Admin Dashboard  
 **Owner:** Admin/QA Agent (Claude)
 
+- [ ] Admin routes configured
+- [ ] Auth protecting admin
+- [ ] All sections implemented
+
+### Step 8.1A: OAuth Authentication Setup (If Required)
+
+**Skill:** Supabase OAuth  
+**Owner:** Builder Agent (implements), User (configures Google Cloud)
+
+**When:** Required if admin dashboard or user portals need authentication
+
+- [ ] Google Cloud Console OAuth consent screen configured
+- [ ] OAuth 2.0 credentials created with correct redirect URIs
+- [ ] Supabase Google provider enabled with Client ID and Secret
+- [ ] Supabase redirect URLs configured (localhost + production)
+- [ ] Environment variables set locally (`.env.local`)
+- [ ] Environment variables set in production (Vercel/etc.)
+- [ ] Sign-in page functional
+- [ ] Callback handler working (`/auth/callback`)
+- [ ] User can successfully sign in with Google
+- [ ] Session persists across page reloads
+- [ ] Protected routes accessible after authentication
+
+**Reference:** See `skills/supabase-oauth/SKILL.md` for complete step-by-step instructions
+
 ### Step 8.2: Bing Webmaster Tools & IndexNow Setup (REQUIRED for AI/LLM Visibility)
 
 **Purpose:** Ensure site is indexed by Bing (used by many LLM-powered search tools)
@@ -697,11 +722,7 @@ Before Content phase can complete:
 - IndexNow speeds up indexing of new/updated content
 - Required for AI Overview visibility
 
-- [ ] Admin routes configured
-- [ ] Auth protecting admin
-- [ ] All sections implemented
-
-### Step 8.2: Analytics Connections
+### Step 8.3: Analytics Connections
 
 **Skill:** Admin Dashboard  
 **Owner:** Admin/QA Agent
@@ -711,7 +732,7 @@ Before Content phase can complete:
 - [ ] Bing Webmaster Tools connected
 - [ ] Bing Places configured (if Local SEO)
 
-### Step 8.3: Social Publishing (if needed)
+### Step 8.4: Social Publishing (if needed)
 
 **Skill:** Social Publishing  
 **Owner:** Admin/QA Agent
