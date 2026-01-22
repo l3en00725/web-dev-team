@@ -1,0 +1,310 @@
+---
+import AdminLayout from '../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Auth handled by Clerk middleware - if user reaches here, they're authenticated + admin
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+
+// Initialize Supabase
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Fetch dashboard stats (using new people-centric model + legacy tables)
+const [
+  { count: totalPeopleCount } = { count: 0 },
+  { count: totalDonorsCount } = { count: 0 },
+  { count: contactSubmissionsCount } = { count: 0 },
+  { count: volunteerApplicationsCount } = { count: 0 },
+  { count: eventRegistrationsCount } = { count: 0 },
+  { count: upcomingEventsCount } = { count: 0 },
+] = await Promise.all([
+  supabase.from('people').select('*', { count: 'exact', head: true }),
+  supabase.from('donor_details').select('*', { count: 'exact', head: true }),
+  supabase.from('contact_submissions').select('*', { count: 'exact', head: true }).eq('status', 'new'),
+  supabase.from('volunteer_applications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+  supabase.from('event_registrations').select('*', { count: 'exact', head: true }).eq('status', 'registered'),
+  supabase.from('programs').select('*', { count: 'exact', head: true }).eq('status', 'upcoming'),
+]);
+
+// Fetch recent activities from the unified timeline
+const { data: recentActivities } = await supabase
+  .from('activities')
+  .select(`
+    *,
+    people!inner (
+      id,
+      name,
+      email
+    )
+  `)
+  .order('created_at', { ascending: false })
+  .limit(10);
+
+// Fetch donor pipeline summary
+const { data: donorPipeline } = await supabase
+  .from('donor_details')
+  .select('status');
+
+const pipelineCounts: Record<string, number> = {
+  'lead': 0,
+  'one-time': 0,
+  'recurring': 0,
+  'lapsed': 0,
+  'vip': 0,
+};
+donorPipeline?.forEach(d => {
+  if (pipelineCounts.hasOwnProperty(d.status)) {
+    pipelineCounts[d.status]++;
+  }
+});
+
+// Activity type icons
+const activityIcons: Record<string, string> = {
+  donation: '💰',
+  form_submitted: '📝',
+  event_registered: '🎫',
+  event_attended: '✅',
+  email_sent: '📧',
+  note_added: '📌',
+  default: '📋',
+};
+
+function getActivityIcon(type: string): string {
+  return activityIcons[type] || activityIcons.default;
+}
+
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+---
+
+<AdminLayout title="Admin Dashboard | Blue Kids" userId={userId} email={email}>
+  <div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+        Dashboard
+      </h1>
+      <p class="text-xl text-brand-primary/70 font-body">
+        Welcome back. Here's what's happening.
+      </p>
+    </div>
+
+    <!-- Quick Stats Row 1: People & Donors -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <a href="/admin/people" class="bg-white rounded-2xl p-5 shadow-md border border-brand-primary/10 hover:shadow-lg transition-shadow" data-reveal>
+        <div class="text-3xl font-display font-black text-brand-primary">{totalPeopleCount || 0}</div>
+        <div class="text-sm text-brand-primary/70">Total People</div>
+      </a>
+      <a href="/admin/people/donors" class="bg-white rounded-2xl p-5 shadow-md border border-brand-primary/10 hover:shadow-lg transition-shadow" data-reveal>
+        <div class="text-3xl font-display font-black text-brand-accent">{totalDonorsCount || 0}</div>
+        <div class="text-sm text-brand-primary/70">Total Donors</div>
+      </a>
+      <a href="/admin/events" class="bg-white rounded-2xl p-5 shadow-md border border-brand-primary/10 hover:shadow-lg transition-shadow" data-reveal>
+        <div class="text-3xl font-display font-black text-purple-600">{upcomingEventsCount || 0}</div>
+        <div class="text-sm text-brand-primary/70">Upcoming Events</div>
+      </a>
+      <a href="/admin/forms" class="bg-white rounded-2xl p-5 shadow-md border border-brand-primary/10 hover:shadow-lg transition-shadow" data-reveal>
+        <div class="text-3xl font-display font-black text-green-600">{eventRegistrationsCount || 0}</div>
+        <div class="text-sm text-brand-primary/70">Event Registrations</div>
+      </a>
+    </div>
+
+    <!-- Action Items Row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {contactSubmissionsCount > 0 && (
+        <a href="/admin/forms#contact" class="bg-red-50 rounded-2xl p-4 border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-4" data-reveal>
+          <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-2xl">📧</div>
+          <div>
+            <div class="font-bold text-red-700">{contactSubmissionsCount} New Contact Forms</div>
+            <div class="text-sm text-red-600">Needs attention</div>
+          </div>
+        </a>
+      )}
+      {volunteerApplicationsCount > 0 && (
+        <a href="/admin/forms#volunteers" class="bg-orange-50 rounded-2xl p-4 border border-orange-200 hover:bg-orange-100 transition-colors flex items-center gap-4" data-reveal>
+          <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl">🤝</div>
+          <div>
+            <div class="font-bold text-orange-700">{volunteerApplicationsCount} Pending Volunteers</div>
+            <div class="text-sm text-orange-600">Review applications</div>
+          </div>
+        </a>
+      )}
+      {pipelineCounts['lapsed'] > 0 && (
+        <a href="/admin/people/donors?status=lapsed" class="bg-yellow-50 rounded-2xl p-4 border border-yellow-200 hover:bg-yellow-100 transition-colors flex items-center gap-4" data-reveal>
+          <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-2xl">⚠️</div>
+          <div>
+            <div class="font-bold text-yellow-700">{pipelineCounts['lapsed']} Lapsed Donors</div>
+            <div class="text-sm text-yellow-600">Consider re-engagement</div>
+          </div>
+        </a>
+      )}
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Left: Activity Feed (takes 2 columns) -->
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10" data-reveal>
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-display font-bold text-brand-primary">Recent Activity</h2>
+            <a href="/admin/people" class="text-brand-accent hover:underline text-sm font-semibold">
+              View All People →
+            </a>
+          </div>
+          
+          {recentActivities && recentActivities.length > 0 ? (
+            <div class="space-y-4">
+              {recentActivities.map((activity) => (
+                <div class="flex items-start gap-4 pb-4 border-b border-brand-primary/5 last:border-b-0 last:pb-0">
+                  <div class="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center text-lg flex-shrink-0">
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-2">
+                      <div>
+                        <a 
+                          href={`/admin/people/${activity.people?.id}`}
+                          class="font-semibold text-brand-primary hover:text-brand-accent"
+                        >
+                          {activity.people?.name || 'Unknown'}
+                        </a>
+                        <p class="text-sm text-brand-primary/70 mt-0.5">{activity.description}</p>
+                      </div>
+                      <span class="text-xs text-brand-primary/50 whitespace-nowrap">
+                        {formatTimeAgo(activity.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div class="text-center py-8 text-brand-primary/50">
+              <p class="text-4xl mb-4">📋</p>
+              <p>No recent activity</p>
+              <p class="text-sm mt-2">Activity will appear here as people interact with your organization.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- Right: Donor Pipeline Summary -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10" data-reveal>
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-display font-bold text-brand-primary">Donor Pipeline</h2>
+            <a href="/admin/people/donors" class="text-brand-accent hover:underline text-sm font-semibold">
+              View →
+            </a>
+          </div>
+          
+          <div class="space-y-3">
+            <a href="/admin/people/donors?status=vip" class="flex items-center justify-between p-3 rounded-xl hover:bg-brand-light/50 transition-colors">
+              <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-purple-500"></span>
+                <span class="font-medium text-brand-primary">VIP</span>
+              </div>
+              <span class="text-lg font-bold text-purple-600">{pipelineCounts['vip']}</span>
+            </a>
+            <a href="/admin/people/donors?status=recurring" class="flex items-center justify-between p-3 rounded-xl hover:bg-brand-light/50 transition-colors">
+              <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                <span class="font-medium text-brand-primary">Recurring</span>
+              </div>
+              <span class="text-lg font-bold text-green-600">{pipelineCounts['recurring']}</span>
+            </a>
+            <a href="/admin/people/donors?status=one-time" class="flex items-center justify-between p-3 rounded-xl hover:bg-brand-light/50 transition-colors">
+              <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                <span class="font-medium text-brand-primary">One-Time</span>
+              </div>
+              <span class="text-lg font-bold text-blue-600">{pipelineCounts['one-time']}</span>
+            </a>
+            <a href="/admin/people/donors?status=lapsed" class="flex items-center justify-between p-3 rounded-xl hover:bg-brand-light/50 transition-colors">
+              <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                <span class="font-medium text-brand-primary">Lapsed</span>
+              </div>
+              <span class="text-lg font-bold text-red-600">{pipelineCounts['lapsed']}</span>
+            </a>
+            <a href="/admin/people/donors?status=lead" class="flex items-center justify-between p-3 rounded-xl hover:bg-brand-light/50 transition-colors">
+              <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                <span class="font-medium text-brand-primary">Leads</span>
+              </div>
+              <span class="text-lg font-bold text-gray-600">{pipelineCounts['lead']}</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10 mt-6" data-reveal>
+          <h2 class="text-xl font-display font-bold text-brand-primary mb-4">Quick Actions</h2>
+          <div class="space-y-3">
+            <a href="/admin/events/create" class="flex items-center gap-3 px-4 py-3 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-colors">
+              <span>🏀</span>
+              <span>Create Event</span>
+            </a>
+            <a href="/admin/email" class="flex items-center gap-3 px-4 py-3 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors">
+              <span>📧</span>
+              <span>Send Email</span>
+            </a>
+            <a href="/admin/content/create" class="flex items-center gap-3 px-4 py-3 border-2 border-brand-primary text-brand-primary rounded-xl font-semibold hover:bg-brand-light transition-colors">
+              <span>✍️</span>
+              <span>Create Content</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  function initReveal() {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('[data-reveal]').forEach((el) => {
+      (el as HTMLElement).style.opacity = '0';
+      (el as HTMLElement).style.transform = 'translateY(20px)';
+      (el as HTMLElement).style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+      observer.observe(el);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initReveal);
+  } else {
+    initReveal();
+  }
+</script>

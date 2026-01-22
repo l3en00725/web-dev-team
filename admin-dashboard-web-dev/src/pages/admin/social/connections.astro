@@ -1,0 +1,624 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import SocialIcon from '../../../components/admin/SocialIcon.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Get user's role from Clerk metadata
+const PERMANENT_SUPER_ADMIN = 'ben@bluehomesgroup.com';
+const isPermanentSuperAdmin = email?.toLowerCase() === PERMANENT_SUPER_ADMIN;
+
+// Role priority: permanent admin > Clerk publicMetadata > database
+const userRole = isPermanentSuperAdmin 
+  ? 'super_admin' 
+  : (user?.publicMetadata?.adminRole as string || user?.publicMetadata?.role as string || 'viewer');
+
+// Permission checks based on role
+const canConnectOrg = userRole === 'super_admin';
+const canConnectPersonal = ['super_admin', 'content_manager'].includes(userRole);
+const canConnect = canConnectOrg || canConnectPersonal;
+
+// Get accessible social connections (exclude "pending" placeholder)
+const { data: connections } = await supabase
+  .from('social_connections')
+  .select('*')
+  .neq('platform', 'pending')
+  .eq('active', true)
+  .or(`user_id.eq.${userId},ownership.eq.org`)
+  .order('ownership', { ascending: false })
+  .order('connected_at', { ascending: false });
+
+// Check if Upload-Post is configured
+const uploadPostConfigured = !!import.meta.env.UPLOAD_POST_API_KEY;
+
+// Check URL params for post-connection state
+const url = new URL(Astro.request.url);
+const justConnected = url.searchParams.get('connected') === 'true';
+const connectionOwnership = url.searchParams.get('ownership');
+
+// Platform display info
+const platformInfo: Record<string, { name: string; description: string }> = {
+  linkedin: { name: 'LinkedIn', description: 'Professional networking' },
+  x: { name: 'X (Twitter)', description: 'Short-form posts' },
+  facebook: { name: 'Facebook', description: 'Social networking' },
+  instagram: { name: 'Instagram', description: 'Photo & video sharing' },
+  threads: { name: 'Threads', description: 'Text-based conversations' },
+  tiktok: { name: 'TikTok', description: 'Short-form video' },
+  youtube: { name: 'YouTube', description: 'Video platform' },
+  pinterest: { name: 'Pinterest', description: 'Visual discovery' },
+  reddit: { name: 'Reddit', description: 'Community discussions' },
+  bluesky: { name: 'Bluesky', description: 'Decentralized social' },
+  medium: { name: 'Medium', description: 'Long-form articles' },
+};
+
+// All supported platforms for connect buttons
+const allPlatforms = ['linkedin', 'instagram', 'facebook', 'x', 'tiktok', 'youtube', 'threads', 'pinterest', 'bluesky'];
+
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return 'Never';
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+---
+
+<AdminLayout title="Social Connections | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-5xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+        Social Connections
+      </h1>
+      <p class="text-xl text-brand-primary/70 font-body">
+        Connect social media accounts to publish content from the admin dashboard
+      </p>
+      
+      <!-- Role-based permissions info -->
+      <div class="mt-4 p-4 bg-brand-light rounded-xl border border-brand-primary/10">
+        <div class="flex items-center gap-2 text-sm text-brand-primary">
+          <span class="font-semibold">Your role:</span>
+          <span class="px-2 py-1 bg-brand-primary/10 rounded capitalize">{userRole.replace('_', ' ')}</span>
+          {canConnectOrg && <span class="text-green-600">Can connect org accounts</span>}
+          {canConnectPersonal && !canConnectOrg && <span class="text-blue-600">Can connect personal accounts</span>}
+          {!canConnect && <span class="text-gray-500">Read-only access</span>}
+        </div>
+      </div>
+
+      {!uploadPostConfigured && (
+        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800">
+          <strong>Warning:</strong> Upload-Post API key not configured. Add <code>UPLOAD_POST_API_KEY</code> to your environment variables to enable social publishing.
+        </div>
+      )}
+    </div>
+
+    <!-- Post-Connection Success Message -->
+    {justConnected && (
+      <div id="connection-success" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">✅</span>
+          <div>
+            <p class="font-semibold text-green-800">Connection process complete!</p>
+            <p class="text-sm text-green-700">Syncing your connected accounts from Upload-Post...</p>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Connected Accounts -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10 mb-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-display font-black text-brand-primary">Connected Accounts</h2>
+        <div class="flex items-center gap-3">
+          <button
+            id="sync-btn"
+            class="px-4 py-2 border-2 border-brand-primary/20 text-brand-primary rounded-xl font-semibold hover:bg-brand-light transition-colors text-sm flex items-center gap-2"
+          >
+            <span id="sync-icon">🔄</span> Sync
+          </button>
+          <a 
+            href="/admin/social/compose" 
+            class="px-4 py-2 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors text-sm"
+          >
+            Compose Post
+          </a>
+        </div>
+      </div>
+      
+      <div id="accounts-container">
+        {connections && connections.filter(c => c.platform !== 'pending').length > 0 ? (
+          <div class="space-y-4">
+            <!-- Org Accounts Section -->
+            {connections.filter(c => c.ownership === 'org').length > 0 && (
+              <div class="mb-6">
+                <h3 class="text-sm font-semibold text-brand-primary/60 uppercase tracking-wide mb-3">Organization Accounts</h3>
+                <div class="space-y-3">
+                  {connections.filter(c => c.ownership === 'org').map((conn) => {
+                    const info = platformInfo[conn.platform] || { name: conn.platform, description: '' };
+                    return (
+                      <div class="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
+                        <div class="flex items-center gap-4">
+                          <SocialIcon platform={conn.platform} size={32} />
+                          <div>
+                            <div class="font-semibold text-brand-primary">{info.name}</div>
+                            {conn.platform_username && (
+                              <div class="text-sm text-brand-primary/60">@{conn.platform_username}</div>
+                            )}
+                            <div class="flex items-center gap-2 mt-1">
+                              <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">Org</span>
+                              {conn.last_successful_post_at && (
+                                <span class="text-xs text-brand-primary/50">
+                                  Last post: {formatDate(conn.last_successful_post_at)}
+                                </span>
+                              )}
+                            </div>
+                            {conn.last_error_message && (
+                              <div class="text-xs text-red-600 mt-1">{conn.last_error_message}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                            Connected
+                          </span>
+                          {canConnectOrg && (
+                            <button
+                              onclick={`disconnectPlatform('${conn.id}', '${info.name}')`}
+                              class="px-4 py-2 border-2 border-red-200 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors text-sm"
+                            >
+                              Disconnect
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <!-- Personal Accounts Section -->
+            {connections.filter(c => c.ownership !== 'org' && c.user_id === userId).length > 0 && (
+              <div>
+                <h3 class="text-sm font-semibold text-brand-primary/60 uppercase tracking-wide mb-3">Your Personal Accounts</h3>
+                <div class="space-y-3">
+                  {connections.filter(c => c.ownership !== 'org' && c.user_id === userId).map((conn) => {
+                    const info = platformInfo[conn.platform] || { name: conn.platform, description: '' };
+                    return (
+                      <div class="flex items-center justify-between p-4 bg-brand-light rounded-xl border border-brand-primary/10">
+                        <div class="flex items-center gap-4">
+                          <SocialIcon platform={conn.platform} size={32} />
+                          <div>
+                            <div class="font-semibold text-brand-primary">{info.name}</div>
+                            {conn.platform_username && (
+                              <div class="text-sm text-brand-primary/60">@{conn.platform_username}</div>
+                            )}
+                            <div class="flex items-center gap-2 mt-1">
+                              <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">Personal</span>
+                              {conn.last_successful_post_at && (
+                                <span class="text-xs text-brand-primary/50">
+                                  Last post: {formatDate(conn.last_successful_post_at)}
+                                </span>
+                              )}
+                            </div>
+                            {conn.last_error_message && (
+                              <div class="text-xs text-red-600 mt-1">{conn.last_error_message}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                            Connected
+                          </span>
+                          <button
+                            onclick={`disconnectPlatform('${conn.id}', '${info.name}')`}
+                            class="px-4 py-2 border-2 border-red-200 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors text-sm"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div class="text-center py-8">
+            <div class="text-4xl mb-3">📱</div>
+            <p class="text-brand-primary/60 mb-2">No social accounts connected yet.</p>
+            <p class="text-sm text-brand-primary/40">Click "Connect Accounts" below to get started.</p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <!-- Connect New Account -->
+    {canConnect ? (
+      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10">
+        <h2 class="text-2xl font-display font-black text-brand-primary mb-2">Connect New Account</h2>
+        <p class="text-brand-primary/60 mb-6">
+          Click the button below to securely connect your social media accounts via Upload-Post's OAuth flow.
+        </p>
+
+        {/* Account Type Selection */}
+        {canConnectOrg && (
+          <div class="mb-6 p-4 bg-brand-light rounded-xl">
+            <label class="block text-brand-primary font-semibold mb-3">Account Type</label>
+            <div class="flex gap-4">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="ownership" value="org" id="ownership-org" class="w-4 h-4 text-brand-primary" />
+                <span class="text-brand-primary">
+                  <strong>Organization</strong>
+                  <span class="text-brand-primary/60 text-sm ml-1">(shared with all admins)</span>
+                </span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="ownership" value="personal" id="ownership-personal" class="w-4 h-4 text-brand-primary" checked />
+                <span class="text-brand-primary">
+                  <strong>Personal</strong>
+                  <span class="text-brand-primary/60 text-sm ml-1">(yours only)</span>
+                </span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Connect Button */}
+        <div class="mb-6">
+          <button
+            id="start-connect-btn"
+            class="w-full md:w-auto px-8 py-4 bg-brand-primary text-white rounded-xl font-bold hover:bg-brand-dark transition-colors text-lg flex items-center justify-center gap-3"
+          >
+            <span class="text-2xl">🔗</span>
+            Connect Social Accounts
+          </button>
+          <p class="text-xs text-brand-primary/50 mt-2">
+            You'll be redirected to Upload-Post to securely sign in to your social accounts.
+          </p>
+        </div>
+
+        {/* Supported Platforms */}
+        <div class="border-t border-brand-primary/10 pt-6">
+          <h3 class="text-sm font-semibold text-brand-primary/60 uppercase tracking-wide mb-4">Supported Platforms</h3>
+          <div class="flex flex-wrap gap-4">
+            {allPlatforms.map((platform) => {
+              const info = platformInfo[platform] || { name: platform, description: '' };
+              return (
+                <div class="flex items-center gap-2 px-3 py-2 bg-brand-light rounded-lg">
+                  <SocialIcon platform={platform} size={20} />
+                  <span class="text-sm text-brand-primary">{info.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div id="connection-message" class="hidden mt-6 p-4 rounded-xl text-center"></div>
+      </div>
+    ) : (
+      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10">
+        <h2 class="text-2xl font-display font-black text-brand-primary mb-4">Connect New Account</h2>
+        <div class="bg-gray-50 rounded-xl p-6 text-center">
+          <p class="text-brand-primary/60">
+            Your current role ({userRole.replace('_', ' ')}) does not have permission to connect social accounts.
+            Contact a super admin if you need access.
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
+</AdminLayout>
+
+<script define:vars={{ userId, canConnectOrg }}>
+  // Server-side variables passed via define:vars
+  const currentUserId = userId;
+  const canConnectOrgFlag = canConnectOrg;
+
+  const startConnectBtn = document.getElementById('start-connect-btn');
+  const syncBtn = document.getElementById('sync-btn');
+  const syncIcon = document.getElementById('sync-icon');
+  const connectionMessage = document.getElementById('connection-message');
+  const connectionSuccess = document.getElementById('connection-success');
+
+  // Check if we just returned from OAuth
+  const urlParams = new URLSearchParams(window.location.search);
+  const justConnected = urlParams.get('connected') === 'true';
+
+  if (justConnected) {
+    // Auto-sync accounts after returning from OAuth
+    syncAccounts();
+    // Clean up URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Start OAuth connection flow
+  if (startConnectBtn) {
+    startConnectBtn.addEventListener('click', async function() {
+      // Get selected ownership
+      const ownershipOrg = document.getElementById('ownership-org');
+      const ownership = ownershipOrg && ownershipOrg.checked ? 'org' : 'personal';
+
+      startConnectBtn.innerHTML = '<span class="animate-pulse">⏳</span> Starting connection...';
+      startConnectBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/admin/social/connect-start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ownership: ownership }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.connectUrl) {
+          // Redirect to Upload-Post OAuth page
+          showMessage('Redirecting to Upload-Post...', 'success');
+          window.location.href = result.connectUrl;
+        } else {
+          showMessage(result.error || 'Failed to start connection', 'error');
+          resetConnectBtn();
+        }
+      } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+        resetConnectBtn();
+      }
+    });
+  }
+
+  function resetConnectBtn() {
+    if (startConnectBtn) {
+      startConnectBtn.innerHTML = '<span class="text-2xl">🔗</span> Connect Social Accounts';
+      startConnectBtn.disabled = false;
+    }
+  }
+
+  // Sync accounts from Upload-Post
+  if (syncBtn) {
+    syncBtn.addEventListener('click', syncAccounts);
+  }
+
+  async function syncAccounts() {
+    if (syncIcon) {
+      syncIcon.classList.add('animate-spin');
+    }
+    if (syncBtn) {
+      syncBtn.disabled = true;
+    }
+
+    try {
+      const response = await fetch('/api/admin/social/sync-accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        console.log('Sync result:', result);
+        
+        if (result.synced && result.synced.length > 0) {
+          showMessage('Synced ' + result.synced.length + ' account(s)!', 'success');
+          // Immediately refresh the accounts list without page reload
+          await refreshAccountsList();
+        } else if (result.errors && result.errors.length > 0) {
+          showMessage(result.errors[0], 'error');
+          console.error('Sync errors:', result.errors);
+        } else {
+          showMessage('No accounts found. Make sure you completed the OAuth connection in Upload-Post.', 'info');
+          console.log('Debug info:', result.debug);
+        }
+
+        // Hide the success banner after sync
+        if (connectionSuccess) {
+          connectionSuccess.classList.add('hidden');
+        }
+      } else {
+        showMessage(result.error || 'Sync failed', 'error');
+        console.error('Sync failed:', result);
+      }
+    } catch (error) {
+      showMessage('Error: ' + error.message, 'error');
+    } finally {
+      if (syncIcon) {
+        syncIcon.classList.remove('animate-spin');
+      }
+      if (syncBtn) {
+        syncBtn.disabled = false;
+      }
+    }
+  }
+
+  // Fetch and render updated accounts list instantly without page reload
+  async function refreshAccountsList() {
+    try {
+      const response = await fetch('/api/admin/social/accounts');
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch accounts');
+      }
+
+      const accountsContainer = document.getElementById('accounts-container');
+      if (!accountsContainer) {
+        // Fallback to reload if container not found
+        window.location.reload();
+        return;
+      }
+
+      const connections = result.accounts || [];
+      const filteredConnections = connections.filter(function(c) { return c.platform !== 'pending'; });
+      
+      if (filteredConnections.length === 0) {
+        accountsContainer.innerHTML = '<div class="text-center py-8"><div class="text-4xl mb-3">📱</div><p class="text-brand-primary/60 mb-2">No social accounts connected yet.</p><p class="text-sm text-brand-primary/40">Click "Connect Accounts" below to get started.</p></div>';
+        return;
+      }
+
+      // Platform display info (mirror server-side)
+      var platformInfo = {
+        linkedin: { name: 'LinkedIn', icon: '💼' },
+        x: { name: 'X', icon: '𝕏' },
+        twitter: { name: 'X', icon: '𝕏' },
+        facebook: { name: 'Facebook', icon: '📘' },
+        instagram: { name: 'Instagram', icon: '📷' },
+        threads: { name: 'Threads', icon: '🧵' },
+        tiktok: { name: 'TikTok', icon: '🎵' },
+        youtube: { name: 'YouTube', icon: '📺' },
+        pinterest: { name: 'Pinterest', icon: '📌' },
+        reddit: { name: 'Reddit', icon: '🤖' },
+        bluesky: { name: 'Bluesky', icon: '☁️' },
+        medium: { name: 'Medium', icon: '📝' }
+      };
+
+      var orgAccounts = filteredConnections.filter(function(c) { return c.ownership === 'org'; });
+      var personalAccounts = filteredConnections.filter(function(c) { return c.ownership !== 'org' && c.user_id === currentUserId; });
+
+      var html = '<div class="space-y-4">';
+
+      // Org Accounts Section
+      if (orgAccounts.length > 0) {
+        html += '<div class="mb-6"><h3 class="text-sm font-semibold text-brand-primary/60 uppercase tracking-wide mb-3">Organization Accounts</h3><div class="space-y-3">';
+        orgAccounts.forEach(function(conn) {
+          var info = platformInfo[conn.platform.toLowerCase()] || { name: conn.platform, icon: '📱' };
+          var canShowDisconnect = canConnectOrgFlag;
+          html += '<div class="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">';
+          html += '<div class="flex items-center gap-4">';
+          html += '<span class="text-2xl">' + info.icon + '</span>';
+          html += '<div>';
+          html += '<div class="font-semibold text-brand-primary">' + info.name + '</div>';
+          if (conn.platform_username) {
+            html += '<div class="text-sm text-brand-primary/60">@' + conn.platform_username + '</div>';
+          }
+          html += '<div class="flex items-center gap-2 mt-1">';
+          html += '<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">Org</span>';
+          if (conn.last_successful_post_at) {
+            html += '<span class="text-xs text-brand-primary/50">Last post: ' + new Date(conn.last_successful_post_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</span>';
+          }
+          html += '</div>';
+          if (conn.last_error_message) {
+            html += '<div class="text-xs text-red-600 mt-1">' + conn.last_error_message + '</div>';
+          }
+          html += '</div></div>';
+          html += '<div class="flex items-center gap-4">';
+          html += '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Connected</span>';
+          if (canShowDisconnect) {
+            html += '<button onclick="disconnectPlatform(\'' + conn.id + '\', \'' + info.name + '\')" class="px-4 py-2 border-2 border-red-200 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors text-sm">Disconnect</button>';
+          }
+          html += '</div></div>';
+        });
+        html += '</div></div>';
+      }
+
+      // Personal Accounts Section
+      if (personalAccounts.length > 0) {
+        html += '<div><h3 class="text-sm font-semibold text-brand-primary/60 uppercase tracking-wide mb-3">Your Personal Accounts</h3><div class="space-y-3">';
+        personalAccounts.forEach(function(conn) {
+          var info = platformInfo[conn.platform.toLowerCase()] || { name: conn.platform, icon: '📱' };
+          html += '<div class="flex items-center justify-between p-4 bg-brand-light rounded-xl border border-brand-primary/10">';
+          html += '<div class="flex items-center gap-4">';
+          html += '<span class="text-2xl">' + info.icon + '</span>';
+          html += '<div>';
+          html += '<div class="font-semibold text-brand-primary">' + info.name + '</div>';
+          if (conn.platform_username) {
+            html += '<div class="text-sm text-brand-primary/60">@' + conn.platform_username + '</div>';
+          }
+          html += '<div class="flex items-center gap-2 mt-1">';
+          html += '<span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">Personal</span>';
+          if (conn.last_successful_post_at) {
+            html += '<span class="text-xs text-brand-primary/50">Last post: ' + new Date(conn.last_successful_post_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + '</span>';
+          }
+          html += '</div>';
+          if (conn.last_error_message) {
+            html += '<div class="text-xs text-red-600 mt-1">' + conn.last_error_message + '</div>';
+          }
+          html += '</div></div>';
+          html += '<div class="flex items-center gap-4">';
+          html += '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Connected</span>';
+          html += '<button onclick="disconnectPlatform(\'' + conn.id + '\', \'' + info.name + '\')" class="px-4 py-2 border-2 border-red-200 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors text-sm">Disconnect</button>';
+          html += '</div></div>';
+        });
+        html += '</div></div>';
+      }
+
+      html += '</div>';
+      accountsContainer.innerHTML = html;
+
+    } catch (error) {
+      console.error('Error refreshing accounts:', error);
+      // Fallback to reload if there's an error
+      window.location.reload();
+    }
+  }
+
+  function showMessage(message, type) {
+    if (!connectionMessage) return;
+    
+    var colors = {
+      success: 'bg-green-50 text-green-700 border border-green-200',
+      error: 'bg-red-50 text-red-700 border border-red-200',
+      info: 'bg-blue-50 text-blue-700 border border-blue-200'
+    };
+    
+    connectionMessage.className = 'mt-6 p-4 rounded-xl text-center ' + colors[type];
+    connectionMessage.textContent = message;
+    connectionMessage.classList.remove('hidden');
+
+    if (type !== 'error') {
+      setTimeout(function() {
+        connectionMessage.classList.add('hidden');
+      }, 5000);
+    }
+  }
+
+  function disconnectPlatform(connectionId, platformName) {
+    if (!confirm('Disconnect ' + platformName + '? You\'ll need to reconnect via Upload-Post to publish to this platform again.')) {
+      return;
+    }
+
+    fetch('/api/admin/disconnect-social', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ connectionId: connectionId })
+    })
+      .then(function(res) { return res.json(); })
+      .then(function(result) {
+        if (result.success) {
+          window.location.reload();
+        } else {
+          alert(result.error || 'Failed to disconnect');
+        }
+      })
+      .catch(function(error) {
+        alert('Error: ' + error.message);
+      });
+  }
+
+  // Expose functions to window for onclick handlers
+  window.disconnectPlatform = disconnectPlatform;
+</script>
+
+<style>
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+  }
+</style>

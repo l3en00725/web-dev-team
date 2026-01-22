@@ -1,0 +1,1094 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+const PERMANENT_SUPER_ADMIN = 'ben@bluehomesgroup.com';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+const normalizedEmail = email?.toLowerCase();
+
+// Check super admin status from Clerk publicMetadata OR permanent super admin
+const clerkAdminRole = user?.publicMetadata?.adminRole as string | undefined;
+const isPermanentSuperAdmin = normalizedEmail === PERMANENT_SUPER_ADMIN;
+const isSuperAdmin = isPermanentSuperAdmin || clerkAdminRole === 'super_admin';
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Get current user's role from Supabase (for backwards compatibility)
+const { data: currentAdminUser } = await supabase
+  .from('admin_users')
+  .select('role')
+  .eq('clerk_user_id', userId)
+  .maybeSingle();
+
+const userRole = currentAdminUser?.role || clerkAdminRole || 'viewer';
+
+// Fetch all admin users for user management
+const { data: adminUsers } = await supabase
+  .from('admin_users')
+  .select('*')
+  .order('created_at', { ascending: false });
+
+// Fetch notification settings (handle case where table doesn't exist yet)
+let notificationSettings = null;
+let notificationSettingsError: any = null;
+try {
+  const { data, error } = await supabase
+    .from('notification_settings')
+    .select('*')
+    .order('notification_type', { ascending: true });
+  
+  if (error) {
+    notificationSettingsError = error;
+    // If table doesn't exist, error.code will be '42P01' or similar
+    if (error.code === '42P01' || error.message?.includes('does not exist') || error.message?.includes('relation') && error.message?.includes('does not exist')) {
+      notificationSettings = null; // Table doesn't exist
+    } else {
+      // Other error - still set to null but keep error for display
+      notificationSettings = null;
+    }
+  } else {
+    notificationSettings = data;
+    notificationSettingsError = null; // Clear error if successful
+  }
+} catch (err: any) {
+  notificationSettingsError = err;
+  notificationSettings = null;
+}
+
+// Fetch site settings (annual report)
+let siteSettings: Record<string, string> = {};
+try {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('setting_key, setting_value')
+    .in('setting_key', ['annual_report_year', 'annual_report_url', 'annual_report_file_path']);
+  
+  if (!error && data) {
+    data.forEach((setting) => {
+      siteSettings[setting.setting_key] = setting.setting_value || '';
+    });
+  }
+} catch (err) {
+  // Table might not exist yet - use defaults
+  siteSettings = {
+    annual_report_year: '2025',
+    annual_report_url: '/documents/2025-annual-report.html',
+    annual_report_file_path: ''
+  };
+}
+
+// Notification type labels
+const notificationTypeLabels: Record<string, string> = {
+  'contact_forms': 'Contact Form Submissions',
+  'event_registrations': 'Event Registrations',
+  'volunteer_applications': 'Volunteer/Partnership Applications'
+};
+---
+
+<AdminLayout title="Settings | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-5xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-6 sm:mb-8">
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+        Settings
+      </h1>
+      <p class="text-base sm:text-lg md:text-xl text-brand-primary/70 font-body">
+        Manage site settings and users
+      </p>
+    </div>
+
+    <!-- User Management Section -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10 mb-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-display font-black text-brand-primary">Users</h2>
+        <button
+          id="add-user-btn"
+          class="px-4 sm:px-6 py-2 sm:py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark active:bg-brand-dark transition-colors touch-manipulation min-h-[44px] text-sm sm:text-base"
+        >
+          <span class="hidden sm:inline">➕ Add User</span>
+          <span class="sm:hidden">➕ Add</span>
+        </button>
+      </div>
+
+      <!-- Add User Modal -->
+      <div id="add-user-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 safe-area-inset">
+        <div class="bg-white rounded-3xl p-4 sm:p-6 md:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl mx-4">
+          <div class="flex items-center justify-between mb-4 sm:mb-6">
+            <h3 class="text-xl sm:text-2xl font-display font-black text-brand-primary">Add User</h3>
+            <button
+              onclick="document.getElementById('add-user-modal').classList.add('hidden')"
+              class="text-brand-primary/60 hover:text-brand-primary min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-brand-light/50 transition-colors touch-manipulation"
+              aria-label="Close modal"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <form id="add-user-form" class="space-y-4">
+            <div>
+              <label for="user-email" class="block text-brand-primary font-semibold mb-2">
+                Email Address <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                id="user-email"
+                name="email"
+                required
+                class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                placeholder="user@example.com"
+              />
+              <p class="text-xs text-brand-primary/60 mt-1">
+                User will receive an email invitation to create their account.
+              </p>
+            </div>
+            <div>
+              <label for="user-name" class="block text-brand-primary font-semibold mb-2">
+                Name <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="user-name"
+                name="name"
+                required
+                class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                placeholder="Full name"
+              />
+            </div>
+            <div>
+              <label for="user-role" class="block text-brand-primary font-semibold mb-2">
+                Role <span class="text-red-500">*</span>
+              </label>
+              <select
+                id="user-role"
+                name="role"
+                required
+                class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              >
+                <option value="content_manager">Content Manager</option>
+                <option value="admin">Admin</option>
+                {isSuperAdmin && (
+                  <option value="super_admin">Super Admin (Full Access)</option>
+                )}
+              </select>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
+              <button
+                type="button"
+                onclick="document.getElementById('add-user-modal').classList.add('hidden')"
+                class="flex-1 px-6 py-3 border-2 border-brand-primary text-brand-primary rounded-full font-bold hover:bg-brand-light active:bg-brand-light transition-colors touch-manipulation min-h-[44px]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="flex-1 px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark active:bg-brand-dark transition-colors touch-manipulation min-h-[44px]"
+              >
+                Add User
+              </button>
+            </div>
+            <div id="add-user-message" class="hidden mt-4 p-4 rounded-xl text-center"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Users List -->
+      <div class="space-y-3">
+        {adminUsers && adminUsers.length > 0 ? (
+          adminUsers.map((user) => (
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-brand-light rounded-xl border border-brand-primary/10 gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="font-semibold text-brand-primary text-sm sm:text-base truncate">{user.name}</div>
+                <div class="text-xs sm:text-sm text-brand-primary/70 truncate">{user.email}</div>
+              </div>
+              
+              <!-- Badges on mobile, inline on desktop -->
+              <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <span class={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                  user.role === 'super_admin' ? 'bg-purple-100 text-purple-700' :
+                  user.role === 'admin' ? 'bg-green-100 text-green-700' :
+                  user.role === 'content_manager' ? 'bg-blue-100 text-blue-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {user.role?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Unknown'}
+                </span>
+                <span class={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                  user.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {user.active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              
+              <!-- Actions -->
+              <div class="flex flex-wrap items-center gap-2 sm:gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-brand-primary/10">
+                <button
+                  onclick={`editUser('${user.id}')`}
+                  class="text-brand-accent hover:text-brand-primary active:text-brand-primary font-semibold text-xs sm:text-sm min-h-[36px] px-2 touch-manipulation"
+                >
+                  Edit
+                </button>
+                {user.active && (
+                  <button
+                    onclick={`deactivateUser('${user.id}')`}
+                    class="text-red-600 hover:text-red-700 active:text-red-700 font-semibold text-xs sm:text-sm min-h-[36px] px-2 whitespace-nowrap touch-manipulation"
+                  >
+                    <span class="hidden sm:inline">Deactivate</span>
+                    <span class="sm:hidden">Deactivate</span>
+                  </button>
+                )}
+                <button
+                  onclick={`deleteUser('${user.id}', '${user.name}')`}
+                  class="text-red-600 hover:text-red-700 active:text-red-700 font-semibold text-xs sm:text-sm min-h-[36px] px-2 touch-manipulation"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p class="text-center py-8 text-brand-primary/70">
+            No users yet. Click "Add User" to get started.
+          </p>
+        )}
+      </div>
+    </div>
+
+    <!-- User Roles Section -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10 mb-8">
+      <h2 class="text-2xl font-display font-black text-brand-primary mb-6">User Roles & Permissions</h2>
+      
+      <div class="space-y-4">
+        <!-- Super Admin -->
+        <div class="p-4 bg-purple-50 rounded-xl border border-purple-200">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">Super Admin</span>
+          </div>
+          <p class="text-sm text-brand-primary/80 mb-2">Full system access with all capabilities:</p>
+          <ul class="text-sm text-brand-primary/70 space-y-1 ml-4">
+            <li>• Manage all users (add, edit, deactivate, delete)</li>
+            <li>• Connect organization-level social accounts (shared by all users)</li>
+            <li>• Connect personal social accounts</li>
+            <li>• Create, edit, and publish content across all platforms</li>
+            <li>• View API keys status and system configuration</li>
+            <li>• Access all donor data and reports</li>
+          </ul>
+        </div>
+
+        <!-- Content Manager -->
+        <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">Content Manager</span>
+          </div>
+          <p class="text-sm text-brand-primary/80 mb-2">Content creation and publishing permissions:</p>
+          <ul class="text-sm text-brand-primary/70 space-y-1 ml-4">
+            <li>• Connect personal social accounts (their own only)</li>
+            <li>• Use organization-level social accounts for publishing</li>
+            <li>• Create, edit, and publish content</li>
+            <li>• Manage email campaigns</li>
+            <li>• View donor data and event registrations</li>
+          </ul>
+        </div>
+
+        <!-- Viewer -->
+        <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-semibold">Viewer</span>
+          </div>
+          <p class="text-sm text-brand-primary/80 mb-2">Read-only access for staff and contributors:</p>
+          <ul class="text-sm text-brand-primary/70 space-y-1 ml-4">
+            <li>• View dashboard and reports</li>
+            <li>• View donor and people data</li>
+            <li>• View event registrations</li>
+            <li>• Cannot connect social accounts</li>
+            <li>• Cannot create or publish content</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications Section -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10 mb-8">
+      <h2 class="text-2xl font-display font-black text-brand-primary mb-6">Email Notifications</h2>
+      <p class="text-sm text-brand-primary/60 mb-6">
+        Configure which email addresses receive notifications for form submissions and event registrations.
+      </p>
+      
+      <div class="space-y-6">
+        {notificationSettings && notificationSettings.length > 0 ? (
+          notificationSettings.map((setting) => (
+            <div class="p-4 bg-brand-light rounded-xl border border-brand-primary/10" data-notification-type={setting.notification_type}>
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-lg font-display font-bold text-brand-primary">
+                    {notificationTypeLabels[setting.notification_type] || setting.notification_type.replace('_', ' ')}
+                  </h3>
+                    <p class="text-sm text-brand-primary/70 mt-1">
+                      {setting.enabled ? 'Notifications enabled' : 'Notifications disabled'}
+                    </p>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      class="sr-only peer notification-toggle"
+                      data-setting-id={setting.id}
+                      data-notification-type={setting.notification_type}
+                      checked={setting.enabled}
+                    />
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+                  </label>
+                </div>
+                
+                <div class="mt-4">
+                  <label class="block text-sm font-semibold text-brand-primary mb-2">
+                    Notification Email Addresses
+                  </label>
+                  <textarea
+                    id={`emails-${setting.id}`}
+                    data-setting-id={setting.id}
+                    data-notification-type={setting.notification_type}
+                    rows="3"
+                    class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary font-mono text-sm"
+                    placeholder="Enter email addresses, one per line or comma-separated"
+                  >{setting.email_addresses?.join('\n') || ''}</textarea>
+                  <p class="text-xs text-brand-primary/60 mt-2">
+                    Enter one email address per line, or separate multiple addresses with commas.
+                  </p>
+                  <button
+                    type="button"
+                    class="mt-3 px-4 py-2 bg-brand-primary text-white rounded-full font-semibold text-sm hover:bg-brand-dark transition-colors save-emails-btn"
+                    data-setting-id={setting.id}
+                    data-notification-type={setting.notification_type}
+                  >
+                    Save Email Addresses
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div class="text-center py-8">
+            {notificationSettingsError && (notificationSettingsError.code === '42P01' || notificationSettingsError.message?.includes('does not exist')) ? (
+              <>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6 text-left max-w-2xl mx-auto">
+                  <h3 class="text-lg font-display font-bold text-yellow-800 mb-3">⚠️ Database Migration Required</h3>
+                  <p class="text-yellow-700 mb-4">
+                    The notification settings table doesn't exist yet. You need to run the database migration first.
+                  </p>
+                  <div class="bg-white rounded-lg p-4 mb-4">
+                    <p class="text-sm font-semibold text-yellow-800 mb-2">Steps to enable notifications:</p>
+                    <ol class="text-sm text-yellow-700 space-y-2 list-decimal list-inside">
+                      <li>Go to your Supabase Dashboard</li>
+                      <li>Open the SQL Editor</li>
+                      <li>Run the migration file: <code class="bg-yellow-100 px-2 py-1 rounded font-mono text-xs">supabase/migrations/007_notification_settings.sql</code></li>
+                      <li>Refresh this page</li>
+                    </ol>
+                  </div>
+                  <p class="text-xs text-yellow-600">
+                    The migration will create the table and set up default notification settings with your team email addresses.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="initialize-notifications-btn"
+                  class="px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors"
+                  disabled
+                >
+                  Run Migration First
+                </button>
+              </>
+            ) : (
+              <>
+                <p class="text-brand-primary/70 mb-4">
+                  No notification settings found. Initialize default settings to get started.
+                </p>
+                <button
+                  type="button"
+                  id="initialize-notifications-btn"
+                  class="px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors"
+                >
+                  Initialize Notification Settings
+                </button>
+                <p class="text-xs text-brand-primary/60 mt-4">
+                  This will create default notification settings with your current team email addresses.
+                </p>
+              </>
+            )}
+            <div id="initialize-message" class="hidden mt-4 p-4 rounded-xl text-center"></div>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Annual Report Settings */}
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10 mb-8">
+      <h2 class="text-2xl font-display font-black text-brand-primary mb-6">Annual Report Settings</h2>
+      <p class="text-sm text-brand-primary/60 mb-6">
+        Manage the annual report displayed on the Impact page. Upload a new report and update the year.
+      </p>
+      
+      <div class="space-y-6">
+        <!-- Annual Report Year -->
+        <div class="p-4 bg-brand-light rounded-xl border border-brand-primary/10">
+          <label class="block text-sm font-semibold text-brand-primary mb-2">
+            Annual Report Year
+          </label>
+          <input
+            type="number"
+            id="annual-report-year"
+            min="2020"
+            max="2100"
+            value={siteSettings.annual_report_year || '2025'}
+            class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            placeholder="2025"
+          />
+          <p class="text-xs text-brand-primary/60 mt-2">
+            The year displayed in the "Annual Impact Report" section on the Impact page.
+          </p>
+          <button
+            type="button"
+            id="save-year-btn"
+            class="mt-3 px-4 py-2 bg-brand-primary text-white rounded-full font-semibold text-sm hover:bg-brand-dark transition-colors"
+          >
+            Save Year
+          </button>
+        </div>
+
+        <!-- Annual Report Upload -->
+        <div class="p-4 bg-brand-light rounded-xl border border-brand-primary/10">
+          <label class="block text-sm font-semibold text-brand-primary mb-2">
+            Annual Report File
+          </label>
+          <div class="space-y-3">
+            <div id="current-report-info" class="text-sm text-brand-primary/70">
+              <p>Current report: <span id="current-report-url" class="font-mono">{siteSettings.annual_report_url || '/documents/2025-annual-report.html'}</span></p>
+            </div>
+            <input
+              type="file"
+              id="annual-report-file"
+              accept=".pdf,.html"
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-primary file:text-white hover:file:bg-brand-dark"
+            />
+            <p class="text-xs text-brand-primary/60">
+              Upload a PDF or HTML file for the annual report. Accepted formats: .pdf, .html
+            </p>
+            <button
+              type="button"
+              id="upload-report-btn"
+              class="px-4 py-2 bg-brand-primary text-white rounded-full font-semibold text-sm hover:bg-brand-dark transition-colors disabled:opacity-50"
+              disabled
+            >
+              Upload Report
+            </button>
+            <div id="upload-status" class="hidden mt-2 text-sm"></div>
+          </div>
+        </div>
+
+        <!-- Manual URL Option -->
+        <div class="p-4 bg-brand-light rounded-xl border border-brand-primary/10">
+          <label class="block text-sm font-semibold text-brand-primary mb-2">
+            Or Enter Report URL Manually
+          </label>
+            <input
+              type="url"
+              id="annual-report-url"
+              value={siteSettings.annual_report_url || ''}
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary font-mono text-sm"
+              placeholder="/documents/2025-annual-report.html"
+            />
+          <p class="text-xs text-brand-primary/60 mt-2">
+            Enter a URL path (e.g., /documents/2025-annual-report.html) or full URL to the annual report.
+          </p>
+          <button
+            type="button"
+            id="save-url-btn"
+            class="mt-3 px-4 py-2 bg-brand-primary text-white rounded-full font-semibold text-sm hover:bg-brand-dark transition-colors"
+          >
+            Save URL
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {/* API Keys Status - Super Admin Only */}
+    {isSuperAdmin && (
+      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10 mb-8">
+        <h2 class="text-2xl font-display font-black text-brand-primary mb-6">API Keys Status</h2>
+        <p class="text-sm text-brand-primary/60 mb-4">Only visible to Super Admins. Configure these in your environment variables.</p>
+        
+        <div class="space-y-2">
+          <div class="flex items-center justify-between p-3 bg-brand-light rounded-xl border border-brand-primary/10">
+            <span class="text-sm text-brand-primary">Anthropic API (Claude AI)</span>
+            <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+              import.meta.env.ANTHROPIC_API_KEY ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {import.meta.env.ANTHROPIC_API_KEY ? 'Configured' : 'Not Set'}
+            </span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-brand-light rounded-xl border border-brand-primary/10">
+            <span class="text-sm text-brand-primary">OpenAI API</span>
+            <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+              import.meta.env.OPENAI_API_KEY ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {import.meta.env.OPENAI_API_KEY ? 'Configured' : 'Not Set'}
+            </span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-brand-light rounded-xl border border-brand-primary/10">
+            <span class="text-sm text-brand-primary">Upload-Post API (Social Publishing)</span>
+            <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+              import.meta.env.UPLOAD_POST_API_KEY ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {import.meta.env.UPLOAD_POST_API_KEY ? 'Configured' : 'Not Set'}
+            </span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-brand-light rounded-xl border border-brand-primary/10">
+            <span class="text-sm text-brand-primary">Resend API (Email)</span>
+            <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+              import.meta.env.RESEND_API_KEY ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {import.meta.env.RESEND_API_KEY ? 'Configured' : 'Not Set'}
+            </span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-brand-light rounded-xl border border-brand-primary/10">
+            <span class="text-sm text-brand-primary">Supabase</span>
+            <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+              import.meta.env.SUPABASE_URL ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {import.meta.env.SUPABASE_URL ? 'Configured' : 'Not Set'}
+            </span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-brand-light rounded-xl border border-brand-primary/10">
+            <span class="text-sm text-brand-primary">Stripe (Payments)</span>
+            <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+              import.meta.env.STRIPE_SECRET_KEY ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {import.meta.env.STRIPE_SECRET_KEY ? 'Configured' : 'Not Set'}
+            </span>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</AdminLayout>
+
+<script>
+  // Add User Modal
+  const addUserBtn = document.getElementById('add-user-btn');
+  const addUserModal = document.getElementById('add-user-modal');
+  const addUserForm = document.getElementById('add-user-form');
+  const addUserMessage = document.getElementById('add-user-message');
+
+  if (addUserBtn && addUserModal) {
+    addUserBtn.addEventListener('click', () => {
+      addUserModal.classList.remove('hidden');
+    });
+  }
+
+  // Add User Form Submission
+  if (addUserForm) {
+    addUserForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(addUserForm);
+      const data = {
+        email: formData.get('email'),
+        name: formData.get('name'),
+        role: formData.get('role'),
+      };
+
+      const submitBtn = addUserForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Adding...';
+
+      try {
+        const response = await fetch('/api/admin/add-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          addUserMessage.className = 'mt-4 p-4 rounded-xl text-center bg-green-50 text-green-700 border border-green-200';
+          addUserMessage.textContent = 'User added successfully! Page will refresh...';
+          addUserMessage.classList.remove('hidden');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          addUserMessage.className = 'mt-4 p-4 rounded-xl text-center bg-red-50 text-red-700 border border-red-200';
+          addUserMessage.textContent = result.error || 'Failed to add user';
+          addUserMessage.classList.remove('hidden');
+        }
+      } catch (error: any) {
+        addUserMessage.className = 'mt-4 p-4 rounded-xl text-center bg-red-50 text-red-700 border border-red-200';
+        addUserMessage.textContent = 'Network error: ' + error.message;
+        addUserMessage.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add User';
+      }
+    });
+  }
+
+  function editUser(userId: string) {
+    // TODO: Implement edit user modal
+    alert('Edit user functionality coming soon');
+  }
+
+  function deactivateUser(userId: string) {
+    if (confirm('Are you sure you want to deactivate this user?')) {
+      fetch('/api/admin/deactivate-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            window.location.reload();
+          } else {
+            alert('Error: ' + data.error);
+          }
+        });
+    }
+  }
+
+  function deleteUser(userId: string, userName: string) {
+    if (confirm(`Are you sure you want to permanently delete ${userName}? This action cannot be undone.`)) {
+      fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            window.location.reload();
+          } else {
+            alert('Error: ' + data.error);
+          }
+        })
+        .catch(error => {
+          alert('Network error: ' + error.message);
+        });
+    }
+  }
+
+  (window as any).editUser = editUser;
+  (window as any).deactivateUser = deactivateUser;
+  (window as any).deleteUser = deleteUser;
+
+  // Notification Settings - Set up event listeners
+  document.querySelectorAll('.notification-toggle').forEach((checkbox) => {
+    checkbox.addEventListener('change', async function(this: HTMLInputElement) {
+      const settingId = this.getAttribute('data-setting-id');
+      const notificationType = this.getAttribute('data-notification-type');
+      const enabled = this.checked;
+      
+      if (!settingId || !notificationType) return;
+
+      try {
+        const response = await fetch('/api/admin/update-notification-setting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: settingId,
+            notificationType: notificationType,
+            enabled: enabled
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          alert('Error: ' + (result.error || 'Failed to update notification setting'));
+          // Revert checkbox
+          this.checked = !enabled;
+        }
+      } catch (error: any) {
+        alert('Network error: ' + error.message);
+        // Revert checkbox
+        this.checked = !enabled;
+      }
+    });
+  });
+
+  document.querySelectorAll('.save-emails-btn').forEach((button) => {
+    button.addEventListener('click', async function(this: HTMLButtonElement) {
+      const settingId = this.getAttribute('data-setting-id');
+      const notificationType = this.getAttribute('data-notification-type');
+      
+      if (!settingId || !notificationType) return;
+
+      const textarea = document.getElementById(`emails-${settingId}`) as HTMLTextAreaElement;
+      if (!textarea) return;
+
+      const emailText = textarea.value.trim();
+      if (!emailText) {
+        alert('Please enter at least one email address');
+        return;
+      }
+
+      // Parse emails (support both newline and comma separation)
+      const emails = emailText
+        .split(/[,\n]/)
+        .map(email => email.trim())
+        .filter(email => email.length > 0 && email.includes('@'));
+
+      if (emails.length === 0) {
+        alert('Please enter valid email addresses');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/update-notification-setting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: settingId,
+            notificationType: notificationType,
+            emailAddresses: emails
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Show success message
+          const originalText = this.textContent;
+          this.textContent = 'Saved!';
+          this.classList.add('bg-green-500');
+          setTimeout(() => {
+            this.textContent = originalText;
+            this.classList.remove('bg-green-500');
+          }, 2000);
+        } else {
+          alert('Error: ' + (result.error || 'Failed to save email addresses'));
+        }
+      } catch (error: any) {
+        alert('Network error: ' + error.message);
+      }
+    });
+  });
+
+  // Notification Settings Functions (kept for backwards compatibility)
+  async function toggleNotification(settingId: string, notificationType: string, enabled: boolean) {
+    try {
+      const response = await fetch('/api/admin/update-notification-setting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: settingId,
+          notificationType: notificationType,
+          enabled: enabled
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        alert('Error: ' + (result.error || 'Failed to update notification setting'));
+        // Revert checkbox
+        const checkbox = document.querySelector(`input[data-setting-id="${settingId}"]`) as HTMLInputElement;
+        if (checkbox) checkbox.checked = !enabled;
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
+      // Revert checkbox
+      const checkbox = document.querySelector(`input[data-setting-id="${settingId}"]`) as HTMLInputElement;
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  async function saveNotificationEmails(settingId: string, notificationType: string) {
+    const textarea = document.getElementById(`emails-${settingId}`) as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const emailText = textarea.value.trim();
+    if (!emailText) {
+      alert('Please enter at least one email address');
+      return;
+    }
+
+    // Parse emails (support both newline and comma separation)
+    const emails = emailText
+      .split(/[,\n]/)
+      .map(email => email.trim())
+      .filter(email => email.length > 0 && email.includes('@'));
+
+    if (emails.length === 0) {
+      alert('Please enter valid email addresses');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/update-notification-setting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: settingId,
+          notificationType: notificationType,
+          emailAddresses: emails
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Show success message
+        const button = textarea.nextElementSibling?.nextElementSibling as HTMLButtonElement;
+        if (button) {
+          const originalText = button.textContent;
+          button.textContent = 'Saved!';
+          button.classList.add('bg-green-500');
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('bg-green-500');
+          }, 2000);
+        }
+      } else {
+        alert('Error: ' + (result.error || 'Failed to save email addresses'));
+      }
+    } catch (error: any) {
+      alert('Network error: ' + error.message);
+    }
+  }
+
+  // Keep functions on window for backwards compatibility (though we're using event listeners now)
+  (window as any).toggleNotification = toggleNotification;
+  (window as any).saveNotificationEmails = saveNotificationEmails;
+
+  // Initialize notification settings
+  const initializeBtn = document.getElementById('initialize-notifications-btn');
+  const initializeMessage = document.getElementById('initialize-message');
+  
+  if (initializeBtn) {
+    initializeBtn.addEventListener('click', async () => {
+      initializeBtn.disabled = true;
+      initializeBtn.textContent = 'Initializing...';
+      
+      try {
+        const response = await fetch('/api/admin/initialize-notification-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          initializeMessage.className = 'mt-4 p-4 rounded-xl text-center bg-green-50 text-green-700 border border-green-200';
+          initializeMessage.textContent = 'Notification settings initialized! Page will refresh...';
+          initializeMessage.classList.remove('hidden');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          initializeMessage.className = 'mt-4 p-4 rounded-xl text-center bg-red-50 text-red-700 border border-red-200';
+          
+          if (result.error === 'TABLE_NOT_FOUND' || result.message?.includes('does not exist')) {
+            initializeMessage.innerHTML = `
+              <strong>Database Migration Required</strong><br>
+              ${result.message || 'The notification settings table does not exist. Please run the database migration first.'}<br>
+              <div class="mt-3 text-sm">
+                <strong>Steps:</strong><br>
+                1. Go to Supabase Dashboard → SQL Editor<br>
+                2. Run: <code class="bg-red-100 px-2 py-1 rounded">supabase/migrations/007_notification_settings.sql</code><br>
+                3. Refresh this page
+              </div>
+            `;
+          } else {
+            initializeMessage.textContent = result.error || result.message || 'Failed to initialize notification settings.';
+          }
+          
+          initializeMessage.classList.remove('hidden');
+          initializeBtn.disabled = false;
+          initializeBtn.textContent = 'Initialize Notification Settings';
+        }
+      } catch (error: any) {
+        initializeMessage.className = 'mt-4 p-4 rounded-xl text-center bg-red-50 text-red-700 border border-red-200';
+        initializeMessage.textContent = 'Network error: ' + error.message;
+        initializeMessage.classList.remove('hidden');
+        initializeBtn.disabled = false;
+        initializeBtn.textContent = 'Initialize Notification Settings';
+      }
+    });
+  }
+
+  // Annual Report Settings
+  const annualReportYearInput = document.getElementById('annual-report-year') as HTMLInputElement;
+  const annualReportUrlInput = document.getElementById('annual-report-url') as HTMLInputElement;
+  const annualReportFileInput = document.getElementById('annual-report-file') as HTMLInputElement;
+  const saveYearBtn = document.getElementById('save-year-btn');
+  const saveUrlBtn = document.getElementById('save-url-btn');
+  const uploadReportBtn = document.getElementById('upload-report-btn');
+  const uploadStatus = document.getElementById('upload-status');
+  const currentReportUrl = document.getElementById('current-report-url');
+
+  // Save Year
+  if (saveYearBtn && annualReportYearInput) {
+    saveYearBtn.addEventListener('click', async () => {
+      const year = annualReportYearInput.value.trim();
+      if (!year || parseInt(year) < 2020 || parseInt(year) > 2100) {
+        alert('Please enter a valid year between 2020 and 2100');
+        return;
+      }
+
+      saveYearBtn.disabled = true;
+      saveYearBtn.textContent = 'Saving...';
+
+      try {
+        const response = await fetch('/api/admin/update-site-setting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settingKey: 'annual_report_year',
+            settingValue: year
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          saveYearBtn.textContent = 'Saved!';
+          saveYearBtn.classList.add('bg-green-500');
+          setTimeout(() => {
+            saveYearBtn.textContent = 'Save Year';
+            saveYearBtn.classList.remove('bg-green-500');
+          }, 2000);
+        } else {
+          alert('Error: ' + (result.error || 'Failed to save year'));
+        }
+      } catch (error: any) {
+        alert('Network error: ' + error.message);
+      } finally {
+        saveYearBtn.disabled = false;
+      }
+    });
+  }
+
+  // Save URL
+  if (saveUrlBtn && annualReportUrlInput) {
+    saveUrlBtn.addEventListener('click', async () => {
+      const url = annualReportUrlInput.value.trim();
+      if (!url) {
+        alert('Please enter a URL');
+        return;
+      }
+
+      saveUrlBtn.disabled = true;
+      saveUrlBtn.textContent = 'Saving...';
+
+      try {
+        const response = await fetch('/api/admin/update-site-setting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settingKey: 'annual_report_url',
+            settingValue: url
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          if (currentReportUrl) {
+            currentReportUrl.textContent = url;
+          }
+          saveUrlBtn.textContent = 'Saved!';
+          saveUrlBtn.classList.add('bg-green-500');
+          setTimeout(() => {
+            saveUrlBtn.textContent = 'Save URL';
+            saveUrlBtn.classList.remove('bg-green-500');
+          }, 2000);
+        } else {
+          alert('Error: ' + (result.error || 'Failed to save URL'));
+        }
+      } catch (error: any) {
+        alert('Network error: ' + error.message);
+      } finally {
+        saveUrlBtn.disabled = false;
+      }
+    });
+  }
+
+  // Enable upload button when file is selected
+  if (annualReportFileInput && uploadReportBtn) {
+    annualReportFileInput.addEventListener('change', () => {
+      uploadReportBtn.disabled = !annualReportFileInput.files || annualReportFileInput.files.length === 0;
+    });
+
+    // Upload Report
+    uploadReportBtn.addEventListener('click', async () => {
+      const file = annualReportFileInput.files?.[0];
+      if (!file) {
+        alert('Please select a file');
+        return;
+      }
+
+      // Validate file type
+      const validTypes = ['application/pdf', 'text/html'];
+      if (!validTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.html')) {
+        alert('Please upload a PDF or HTML file');
+        return;
+      }
+
+      uploadReportBtn.disabled = true;
+      uploadReportBtn.textContent = 'Uploading...';
+      if (uploadStatus) {
+        uploadStatus.textContent = 'Uploading file...';
+        uploadStatus.className = 'mt-2 text-sm text-brand-accent';
+        uploadStatus.classList.remove('hidden');
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('settingKey', 'annual_report_file_path');
+
+        const response = await fetch('/api/admin/upload-annual-report', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          if (currentReportUrl) {
+            currentReportUrl.textContent = result.url || result.filePath || 'File uploaded';
+          }
+          if (uploadStatus) {
+            uploadStatus.textContent = 'File uploaded successfully!';
+            uploadStatus.className = 'mt-2 text-sm text-green-600';
+          }
+          uploadReportBtn.textContent = 'Upload Report';
+          annualReportFileInput.value = '';
+        } else {
+          alert('Error: ' + (result.error || 'Failed to upload file'));
+          if (uploadStatus) {
+            uploadStatus.textContent = 'Upload failed';
+            uploadStatus.className = 'mt-2 text-sm text-red-600';
+          }
+        }
+      } catch (error: any) {
+        alert('Network error: ' + error.message);
+        if (uploadStatus) {
+          uploadStatus.textContent = 'Upload failed';
+          uploadStatus.className = 'mt-2 text-sm text-red-600';
+        }
+      } finally {
+        uploadReportBtn.disabled = true;
+      }
+    });
+  }
+</script>

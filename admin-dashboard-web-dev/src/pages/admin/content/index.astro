@@ -1,0 +1,127 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Fetch content posts
+const { data: contentPosts } = await supabase
+  .from('content_posts')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .limit(50);
+---
+
+<AdminLayout title="Content Management | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+          Content Management
+        </h1>
+        <p class="text-xl text-brand-primary/70 font-body">
+          Create, edit, and publish content with AI assistance
+        </p>
+      </div>
+      <a
+        href="/admin/content/create"
+        class="px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors"
+      >
+        ✍️ Create New Content
+      </a>
+    </div>
+
+    <!-- Content Library -->
+    <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-display font-black text-brand-primary">Content Library</h2>
+        <div class="flex gap-2">
+          <select class="px-4 py-2 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm">
+            <option>All Status</option>
+            <option>Published</option>
+            <option>Draft</option>
+            <option>Archived</option>
+          </select>
+          <input
+            type="search"
+            placeholder="Search content..."
+            class="px-4 py-2 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm"
+          />
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        {contentPosts && contentPosts.length > 0 ? (
+          contentPosts.map((post) => (
+            <div class="border border-brand-primary/10 rounded-2xl p-6 hover:shadow-lg transition-shadow">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2">
+                    <h3 class="text-xl font-display font-bold text-brand-primary">
+                      {post.title}
+                    </h3>
+                    <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      post.status === 'published' ? 'bg-green-100 text-green-700' :
+                      post.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {post.status}
+                    </span>
+                    {post.ai_generated && (
+                      <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
+                        AI Generated
+                      </span>
+                    )}
+                  </div>
+                  {post.excerpt && (
+                    <p class="text-brand-primary/70 mb-3 line-clamp-2">{post.excerpt}</p>
+                  )}
+                  <div class="flex items-center gap-4 text-sm text-brand-primary/60">
+                    <span>Created {new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    {post.published_at && (
+                      <span>Published {new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    )}
+                  </div>
+                </div>
+                <div class="flex gap-2 ml-4">
+                  <a
+                    href={`/admin/content/${post.id}`}
+                    class="px-4 py-2 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors text-sm"
+                  >
+                    Edit
+                  </a>
+                  <button class="px-4 py-2 border-2 border-brand-primary text-brand-primary rounded-xl font-semibold hover:bg-brand-light transition-colors text-sm">
+                    Publish
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div class="text-center py-12">
+            <div class="text-6xl mb-4">✍️</div>
+            <p class="text-xl text-brand-primary/70 mb-4">No content yet</p>
+            <a
+              href="/admin/content/create"
+              class="inline-block px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors"
+            >
+              Create Your First Post
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</AdminLayout>

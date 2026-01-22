@@ -1,0 +1,756 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const adminEmail = user?.primaryEmailAddress?.emailAddress;
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Fetch donors for email list
+const { data: donors } = await supabase
+  .from('donors')
+  .select('id, name, email')
+  .order('created_at', { ascending: false })
+  .limit(500);
+
+// Get donor stats for reference panel
+const { count: totalDonors } = await supabase
+  .from('donors')
+  .select('*', { count: 'exact', head: true });
+
+const { count: recurringDonors } = await supabase
+  .from('subscriptions')
+  .select('*', { count: 'exact', head: true })
+  .eq('status', 'active');
+
+// Default sender emails (verified domains in Resend)
+const defaultSenderEmails = [
+  'info@thebluekids.com',
+  'ben@bluehomesgroup.com',
+  'scott@bluehomesgroup.com',
+  'bryan@bluehomesgroup.com',
+  'yuliya@confidere.biz',
+];
+---
+
+<AdminLayout title="Email Composer | Admin Dashboard" userId={userId} email={adminEmail}>
+  <div class="max-w-7xl mx-auto flex gap-6">
+    <!-- Main Content Area -->
+    <div class="flex-1">
+      <!-- Page Header -->
+      <div class="mb-8">
+        <div>
+          <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+            Email Composer
+          </h1>
+          <p class="text-xl text-brand-primary/70 font-body">
+            Describe what you want to accomplish, and Claude will write the email
+          </p>
+        </div>
+        
+        <!-- API Status -->
+        <div class="mt-4 flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-brand-primary/70">Resend API:</span>
+            <span class={`px-3 py-1 rounded-full text-xs font-semibold ${
+              import.meta.env.RESEND_API_KEY ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {import.meta.env.RESEND_API_KEY ? 'Connected' : 'Not Connected'}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-brand-primary/70">Claude API:</span>
+            <span class={`px-3 py-1 rounded-full text-xs font-semibold ${
+              import.meta.env.ANTHROPIC_API_KEY ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {import.meta.env.ANTHROPIC_API_KEY ? 'Connected' : 'Not Connected'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Composer -->
+      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10">
+        <form id="email-form" class="space-y-6">
+          <!-- Email Type -->
+          <div>
+            <label class="block text-brand-primary font-semibold mb-2">
+              Email Type <span class="text-red-500">*</span>
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 p-3 border-2 border-brand-primary/20 rounded-xl cursor-pointer hover:bg-brand-light transition-colors">
+                <input type="radio" name="emailType" value="donor" checked class="w-4 h-4 text-brand-primary focus:ring-brand-primary" />
+                <span class="font-semibold text-brand-primary">Donor Email</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 border-2 border-brand-primary/20 rounded-xl cursor-pointer hover:bg-brand-light transition-colors">
+                <input type="radio" name="emailType" value="custom" class="w-4 h-4 text-brand-primary focus:ring-brand-primary" />
+                <span class="font-semibold text-brand-primary">Custom Email</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Event Selection (for donor emails) -->
+          <div id="event-selection" class="border border-brand-primary/10 rounded-xl p-4 bg-brand-light/50">
+            <label for="event-id" class="block text-brand-primary font-semibold mb-2">
+              Connect to Event (Optional)
+            </label>
+            <select
+              id="event-id"
+              name="eventId"
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            >
+              <option value="">No event connection</option>
+              <!-- Events will be loaded dynamically -->
+            </select>
+            <p class="text-xs text-brand-primary/60 mt-1">
+              Connect to an event to have Claude write an event-specific email
+            </p>
+          </div>
+
+          <!-- Custom Email Recipients -->
+          <div id="custom-email-section" class="hidden">
+            <label for="custom-emails" class="block text-brand-primary font-semibold mb-2">
+              Custom Email Addresses <span class="text-red-500">*</span>
+            </label>
+            <textarea
+              id="custom-emails"
+              name="customEmails"
+              rows="4"
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none"
+              placeholder="Enter email addresses, one per line or separated by commas..."
+            ></textarea>
+            <p class="text-xs text-brand-primary/60 mt-1">
+              Enter email addresses separated by commas or one per line
+            </p>
+          </div>
+
+          <!-- Recipients (for donor emails) -->
+          <div id="donor-recipients">
+            <label for="recipients" class="block text-brand-primary font-semibold mb-2">
+              Recipients <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="recipients"
+              name="recipients"
+              multiple
+              size="6"
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            >
+              <option value="all-donors">All Donors ({donors?.length || 0})</option>
+              <option value="recurring-donors">Recurring Donors Only</option>
+              <option value="one-time-donors">One-Time Donors Only</option>
+              <option value="non-donors">Non-Donors (Haven't Donated Yet)</option>
+              <option value="custom">Custom List (select below)</option>
+            </select>
+            <p class="text-xs text-brand-primary/60 mt-1">
+              Hold Cmd/Ctrl to select multiple options. Selected: <span id="selected-count" class="font-semibold">0</span>
+            </p>
+          </div>
+
+          <!-- Custom Recipient List -->
+          <div id="custom-recipients" class="hidden">
+            <label class="block text-brand-primary font-semibold mb-2">Select Recipients</label>
+            <div class="max-h-60 overflow-y-auto border border-brand-primary/20 rounded-xl p-4">
+              {donors && donors.length > 0 ? (
+                donors.map((donor) => (
+                  <label class="flex items-center gap-2 py-2 border-b border-brand-primary/5 last:border-b-0">
+                    <input
+                      type="checkbox"
+                      name="customRecipients"
+                      value={donor.email}
+                      class="w-4 h-4 text-brand-primary rounded focus:ring-brand-primary"
+                    />
+                    <span class="text-sm text-brand-primary">
+                      {donor.name || 'Anonymous'} ({donor.email})
+                    </span>
+                  </label>
+                ))
+              ) : (
+                <p class="text-sm text-brand-primary/60">No donors yet</p>
+              )}
+            </div>
+          </div>
+
+          <!-- From Email -->
+          <div>
+            <label for="from-email" class="block text-brand-primary font-semibold mb-2">
+              From Email <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="from-email"
+              name="fromEmail"
+              required
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            >
+              {defaultSenderEmails.map((email) => (
+                <option value={email} selected={email === adminEmail}>
+                  {email} {email === adminEmail ? '(Your Email)' : ''}
+                </option>
+              ))}
+            </select>
+            <p class="text-xs text-brand-primary/60 mt-1">
+              Emails will be sent from this address. Your email ({adminEmail}) is selected by default.
+            </p>
+          </div>
+
+          <!-- INTENT PROMPT (Initial State - Always Visible) -->
+          <div id="intent-section" class="bg-brand-light rounded-2xl p-6 border border-brand-primary/10">
+            <label for="email-intent" class="block text-brand-primary font-semibold mb-3">
+              What do you want this email to accomplish? <span class="text-red-500">*</span>
+            </label>
+            <textarea
+              id="email-intent"
+              rows="4"
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none"
+              placeholder="Describe the goal of this email... (e.g., 'Thank donors for their support and share our recent impact', 'Announce an upcoming basketball event and encourage registrations', 'Request corporate sponsorship for our summer programs')"
+            ></textarea>
+            <div class="flex gap-3 mt-4">
+              <button
+                type="button"
+                id="generate-email-btn"
+                class="px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors disabled:opacity-50"
+              >
+                Generate Email
+              </button>
+              <button
+                type="button"
+                id="generate-from-event-btn"
+                class="px-6 py-3 border-2 border-brand-primary text-brand-primary rounded-full font-bold hover:bg-brand-light transition-colors disabled:opacity-50"
+              >
+                Generate from Event
+              </button>
+            </div>
+            <div id="email-ai-loading" class="hidden mt-4 text-sm text-brand-accent font-semibold">
+              🤖 Claude is writing your email...
+            </div>
+          </div>
+
+          <!-- SUBJECT & CONTENT (Hidden until generation) -->
+          <div id="email-content-section" class="hidden space-y-6">
+            <!-- Subject -->
+            <div>
+              <label for="subject" class="block text-brand-primary font-semibold mb-2">
+                Subject <span class="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="subject"
+                name="subject"
+                required
+                class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary text-lg"
+                placeholder="Email subject line..."
+              />
+            </div>
+
+            <!-- Email Content -->
+            <div>
+              <label for="email-content" class="block text-brand-primary font-semibold mb-2">
+                Email Content <span class="text-red-500">*</span>
+                <span class="text-xs font-normal text-brand-primary/60 ml-2">(Editable after generation)</span>
+              </label>
+              <textarea
+                id="email-content"
+                name="emailContent"
+                rows="15"
+                required
+                class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none"
+                placeholder="Email content will appear here after generation..."
+              ></textarea>
+              <p class="text-xs text-brand-primary/60 mt-1">
+                You can use HTML for formatting. Edit as needed before sending.
+              </p>
+            </div>
+
+            <!-- Regenerate Button -->
+            <div class="flex items-center justify-between pt-4 border-t border-brand-primary/10">
+              <button
+                type="button"
+                id="regenerate-email-btn"
+                class="px-4 py-2 border-2 border-brand-primary text-brand-primary rounded-xl font-semibold hover:bg-brand-light transition-colors text-sm"
+              >
+                🔄 Regenerate Email
+              </button>
+              <span class="text-xs text-brand-primary/60">
+                Not quite right? Edit the intent above and regenerate.
+              </span>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <div id="preview-section" class="hidden border-t border-brand-primary/10 pt-6">
+            <h3 class="text-lg font-display font-bold text-brand-primary mb-4">Preview</h3>
+            <div class="bg-brand-light rounded-xl p-6 border border-brand-primary/20">
+              <div class="mb-2">
+                <strong class="text-brand-primary">To:</strong> <span id="preview-recipients" class="text-brand-primary/70">All Donors</span>
+              </div>
+              <div class="mb-2">
+                <strong class="text-brand-primary">Subject:</strong> <span id="preview-subject" class="text-brand-primary/70">-</span>
+              </div>
+              <div class="mt-4 p-4 bg-white rounded-xl border border-brand-primary/10">
+                <div id="preview-content" class="text-brand-primary/80 whitespace-pre-wrap">
+                  Email preview will appear here...
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div id="send-actions" class="hidden flex gap-4 pt-6 border-t border-brand-primary/10">
+            <button
+              type="button"
+              id="preview-btn"
+              class="px-6 py-3 border-2 border-brand-primary text-brand-primary rounded-full font-bold hover:bg-brand-light transition-colors"
+            >
+              Update Preview
+            </button>
+            <button
+              type="submit"
+              id="send-btn"
+              class="px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors disabled:opacity-50"
+            >
+              Send Email
+            </button>
+          </div>
+          <div id="email-message" class="hidden mt-4 p-4 rounded-xl text-center"></div>
+        </form>
+      </div>
+
+      <!-- Preview Emails Section (moved to bottom) -->
+      <div class="mt-6 flex items-center justify-between">
+        <h2 class="text-2xl font-display font-bold text-brand-primary mb-2">
+          Auto emails to donors and users
+        </h2>
+        <a
+          href="/admin/email/preview"
+          class="px-6 py-3 bg-brand-accent text-white rounded-full font-bold hover:bg-brand-accent/90 transition-colors whitespace-nowrap"
+        >
+          📧 Preview Emails
+        </a>
+      </div>
+    </div>
+
+    <!-- Reference Panel (Right Sidebar) -->
+    <aside class="hidden lg:block w-80 flex-shrink-0">
+      <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10 sticky top-24">
+        <h3 class="text-xl font-display font-bold text-brand-primary mb-6">Reference</h3>
+        
+        <!-- Donor Summary -->
+        <div class="mb-6 pb-6 border-b border-brand-primary/10">
+          <h4 class="text-sm font-semibold text-brand-primary/70 mb-3">Donors</h4>
+          <div class="space-y-2 text-sm text-brand-primary/80">
+            <div>Total Donors: <strong class="text-brand-primary">{totalDonors || 0}</strong></div>
+            <div>Recurring: <strong class="text-brand-primary">{recurringDonors || 0}</strong></div>
+            <div>One-Time: <strong class="text-brand-primary">{(totalDonors || 0) - (recurringDonors || 0)}</strong></div>
+          </div>
+          <a 
+            href="/admin/people/donors"
+            target="_blank"
+            class="mt-3 inline-block text-xs text-brand-accent hover:underline font-semibold"
+          >
+            View Donor Page →
+          </a>
+        </div>
+
+        <!-- Corporate Sponsors -->
+        <div class="mb-6 pb-6 border-b border-brand-primary/10">
+          <h4 class="text-sm font-semibold text-brand-primary/70 mb-3">Corporate Partners</h4>
+          <p class="text-sm text-brand-primary/80 mb-3">
+            Information about corporate sponsorship opportunities and partnerships.
+          </p>
+          <a 
+            href="/partnerships"
+            target="_blank"
+            class="inline-block text-xs text-brand-accent hover:underline font-semibold"
+          >
+            View Partnerships Page →
+          </a>
+        </div>
+
+        <!-- Selected Event (Dynamic) -->
+        <div id="event-reference" class="hidden">
+          <h4 class="text-sm font-semibold text-brand-primary/70 mb-3">Selected Event</h4>
+          <div id="event-reference-content" class="text-sm text-brand-primary/80">
+            <!-- Event details will be populated here -->
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</AdminLayout>
+
+<script>
+  // State management: Track if email has been generated
+  let emailGenerated = false;
+
+  // Email type toggle
+  const emailTypeRadios = document.querySelectorAll('input[name="emailType"]');
+  const customEmailSection = document.getElementById('custom-email-section');
+  const donorRecipients = document.getElementById('donor-recipients');
+  const customRecipients = document.getElementById('custom-recipients');
+
+  emailTypeRadios.forEach(radio => {
+    radio.addEventListener('change', (e: any) => {
+      if (e.target.value === 'custom') {
+        customEmailSection?.classList.remove('hidden');
+        donorRecipients?.classList.add('hidden');
+        customRecipients?.classList.add('hidden');
+      } else {
+        customEmailSection?.classList.add('hidden');
+        donorRecipients?.classList.remove('hidden');
+      }
+      updatePreview();
+    });
+  });
+
+  // Load events for event selection
+  const eventSelect = document.getElementById('event-id');
+  const eventReference = document.getElementById('event-reference');
+  const eventReferenceContent = document.getElementById('event-reference-content');
+  
+  async function loadEvents() {
+    try {
+      const response = await fetch('/api/admin/get-events');
+      const data = await response.json();
+      if (data.success && eventSelect) {
+        data.events.forEach((event: any) => {
+          const option = document.createElement('option');
+          option.value = event.id;
+          option.textContent = `${event.sport} - ${new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+          eventSelect.appendChild(option);
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load events:', error);
+    }
+  }
+  loadEvents();
+
+  // Update event reference panel when event is selected
+  if (eventSelect) {
+    eventSelect.addEventListener('change', async (e: any) => {
+      const eventId = e.target.value;
+      if (eventId && eventReference && eventReferenceContent) {
+        try {
+          const response = await fetch('/api/admin/get-events');
+          const data = await response.json();
+          if (data.success) {
+            const event = data.events.find((ev: any) => ev.id === eventId);
+            if (event) {
+              const eventDate = new Date(event.event_date);
+              eventReferenceContent.innerHTML = `
+                <div class="space-y-2">
+                  <div><strong>Sport:</strong> ${event.sport}</div>
+                  <div><strong>Date:</strong> ${eventDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+                  ${event.location ? `<div><strong>Location:</strong> ${event.location}</div>` : ''}
+                  ${event.coach_name ? `<div><strong>Event Leader:</strong> ${event.coach_name}</div>` : ''}
+                </div>
+              `;
+              eventReference.classList.remove('hidden');
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load event details:', error);
+        }
+      } else if (eventReference) {
+        eventReference.classList.add('hidden');
+      }
+    });
+  }
+
+  // Update preview
+  const recipientsSelect = document.getElementById('recipients');
+  const customEmailsInput = document.getElementById('custom-emails');
+  const subjectInput = document.getElementById('subject');
+  const emailContent = document.getElementById('email-content');
+  const previewRecipients = document.getElementById('preview-recipients');
+  const previewSubject = document.getElementById('preview-subject');
+  const previewContent = document.getElementById('preview-content');
+  const previewBtn = document.getElementById('preview-btn');
+  const sendBtn = document.getElementById('send-btn');
+
+  if (recipientsSelect && customRecipients) {
+    recipientsSelect.addEventListener('change', () => {
+      if (recipientsSelect.value === 'custom') {
+        customRecipients.classList.remove('hidden');
+      } else {
+        customRecipients.classList.add('hidden');
+      }
+      updatePreview();
+    });
+  }
+
+  function updatePreview() {
+    const emailType = (document.querySelector('input[name="emailType"]:checked') as HTMLInputElement)?.value;
+    
+    if (previewRecipients) {
+      if (emailType === 'custom' && customEmailsInput) {
+        const emails = customEmailsInput.value.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
+        previewRecipients.textContent = emails.length > 0 ? emails.join(', ') : 'No emails entered';
+      } else if (recipientsSelect) {
+        const selected = Array.from(recipientsSelect.selectedOptions).map(opt => opt.text);
+        previewRecipients.textContent = selected.join(', ') || 'All Donors';
+      }
+    }
+    if (previewSubject && subjectInput) {
+      previewSubject.textContent = subjectInput.value || '-';
+    }
+    if (previewContent && emailContent) {
+      previewContent.innerHTML = emailContent.value || 'Email preview will appear here...';
+    }
+  }
+
+  if (previewBtn) {
+    previewBtn.addEventListener('click', updatePreview);
+  }
+
+  if (subjectInput) subjectInput.addEventListener('input', updatePreview);
+  if (emailContent) emailContent.addEventListener('input', updatePreview);
+
+  // Update selected count for multi-select
+  if (recipientsSelect) {
+    recipientsSelect.addEventListener('change', () => {
+      const selectedCount = document.getElementById('selected-count');
+      if (selectedCount) {
+        selectedCount.textContent = recipientsSelect.selectedOptions.length.toString();
+      }
+      updatePreview();
+    });
+  }
+
+  // Claude AI Email Generation - Intent-based
+  const generateEmailBtn = document.getElementById('generate-email-btn');
+  const generateFromEventBtn = document.getElementById('generate-from-event-btn');
+  const regenerateEmailBtn = document.getElementById('regenerate-email-btn');
+  const emailIntent = document.getElementById('email-intent') as HTMLTextAreaElement;
+  const emailAiLoading = document.getElementById('email-ai-loading');
+  const intentSection = document.getElementById('intent-section');
+  const emailContentSection = document.getElementById('email-content-section');
+  const previewSection = document.getElementById('preview-section');
+  const sendActions = document.getElementById('send-actions');
+
+  // Helper: Show generated email UI
+  function showGeneratedEmailUI() {
+    emailGenerated = true;
+    if (emailContentSection) emailContentSection.classList.remove('hidden');
+    if (previewSection) previewSection.classList.remove('hidden');
+    if (sendActions) sendActions.classList.remove('hidden');
+    // Make intent read-only (but keep visible for regeneration)
+    if (emailIntent) {
+      emailIntent.readOnly = true;
+      emailIntent.classList.add('bg-brand-light/50');
+    }
+  }
+
+  // Helper: Generate email from intent
+  async function generateEmailFromIntent(intent: string, eventId?: string) {
+    const endpoint = eventId ? '/api/ai/generate-event-email' : '/api/ai/generate-email';
+    const body = eventId ? { eventId, intent } : { intent };
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      // Check if endpoint exists (404 means route not found)
+      if (response.status === 404) {
+        alert('API endpoint not found. Please check if the server is running and the route exists.');
+        return false;
+      }
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        if (subjectInput) subjectInput.value = result.subject || '';
+        if (emailContent) emailContent.value = result.email || '';
+        showGeneratedEmailUI();
+        updatePreview();
+        return true;
+      } else {
+        alert(result.error || 'Failed to generate email. Please check Claude API key.');
+        return false;
+      }
+    } catch (error: any) {
+      // Network errors or other fetch failures
+      console.error('Email generation error:', error);
+      alert(`Error: ${error.message || 'Failed to connect to API. Please check your connection and try again.'}`);
+      return false;
+    }
+  }
+
+  // Generate Email button
+  if (generateEmailBtn && emailIntent) {
+    generateEmailBtn.addEventListener('click', async () => {
+      const intent = emailIntent.value.trim();
+      if (!intent) {
+        alert('Please describe what you want this email to accomplish.');
+        return;
+      }
+
+      generateEmailBtn.disabled = true;
+      generateEmailBtn.textContent = 'Generating...';
+      if (emailAiLoading) emailAiLoading.classList.remove('hidden');
+
+      try {
+        await generateEmailFromIntent(intent);
+      } catch (error: any) {
+        alert('Error generating email: ' + error.message);
+      } finally {
+        generateEmailBtn.disabled = false;
+        generateEmailBtn.textContent = 'Generate Email';
+        if (emailAiLoading) emailAiLoading.classList.add('hidden');
+      }
+    });
+  }
+
+  // Generate from Event button
+  if (generateFromEventBtn && eventSelect) {
+    generateFromEventBtn.addEventListener('click', async () => {
+      const eventId = (eventSelect as HTMLSelectElement).value;
+      if (!eventId) {
+        alert('Please select an event first.');
+        return;
+      }
+
+      const intent = emailIntent.value.trim() || 'Write an email about this event';
+
+      generateFromEventBtn.disabled = true;
+      generateFromEventBtn.textContent = 'Generating...';
+      if (emailAiLoading) emailAiLoading.classList.remove('hidden');
+
+      try {
+        await generateEmailFromIntent(intent, eventId);
+      } catch (error: any) {
+        alert('Error generating email: ' + error.message);
+      } finally {
+        generateFromEventBtn.disabled = false;
+        generateFromEventBtn.textContent = 'Generate from Event';
+        if (emailAiLoading) emailAiLoading.classList.add('hidden');
+      }
+    });
+  }
+
+  // Regenerate Email button
+  if (regenerateEmailBtn && emailIntent) {
+    regenerateEmailBtn.addEventListener('click', async () => {
+      const intent = emailIntent.value.trim();
+      if (!intent) {
+        alert('Please update the intent description above first.');
+        return;
+      }
+
+      regenerateEmailBtn.disabled = true;
+      regenerateEmailBtn.textContent = 'Regenerating...';
+      if (emailAiLoading) emailAiLoading.classList.remove('hidden');
+
+      try {
+        const eventId = (eventSelect as HTMLSelectElement)?.value || undefined;
+        await generateEmailFromIntent(intent, eventId);
+      } catch (error: any) {
+        alert('Error regenerating email: ' + error.message);
+      } finally {
+        regenerateEmailBtn.disabled = false;
+        regenerateEmailBtn.textContent = '🔄 Regenerate Email';
+        if (emailAiLoading) emailAiLoading.classList.add('hidden');
+      }
+    });
+  }
+
+  // Send email
+  const emailForm = document.getElementById('email-form');
+  const emailMessage = document.getElementById('email-message');
+
+  if (emailForm && sendBtn) {
+    emailForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Validate that email has been generated
+      if (!emailGenerated) {
+        alert('Please generate an email first before sending.');
+        return;
+      }
+
+      const formData = new FormData(emailForm);
+      const emailType = formData.get('emailType');
+      const customRecipientsList = Array.from(document.querySelectorAll('input[name="customRecipients"]:checked')).map((el: any) => el.value);
+      const customEmails = customEmailsInput ? (customEmailsInput as HTMLTextAreaElement).value.split(/[,\n]/).map(e => e.trim()).filter(Boolean) : [];
+      
+      // Check if multiple recipients selected and confirm
+      if (emailType === 'donor' && recipientsSelect) {
+        const selectedCount = recipientsSelect.selectedOptions.length;
+        if (selectedCount > 1) {
+          const selectedOptions = Array.from(recipientsSelect.selectedOptions).map(opt => opt.text).join(', ');
+          if (!confirm(`You have selected ${selectedCount} recipient groups:\n\n${selectedOptions}\n\nContinue sending?`)) {
+            return;
+          }
+        } else if (selectedCount === 0) {
+          alert('Please select at least one recipient group.');
+          return;
+        }
+      }
+
+      const data = {
+        emailType,
+        recipients: emailType === 'donor' ? Array.from(recipientsSelect?.selectedOptions || []).map(opt => opt.value) : null,
+        customRecipients: customRecipientsList,
+        customEmails: emailType === 'custom' ? customEmails : [],
+        eventId: formData.get('eventId') || null,
+        fromEmail: formData.get('fromEmail'),
+        subject: formData.get('subject'),
+        content: formData.get('emailContent'),
+      };
+
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+
+      try {
+        const response = await fetch('/api/admin/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          emailMessage.className = 'mt-4 p-4 rounded-xl text-center bg-green-50 text-green-700 border border-green-200';
+          emailMessage.textContent = `Email sent successfully to ${result.sentCount || 0} recipients!`;
+          emailMessage.classList.remove('hidden');
+          // Reset form but keep intent for reference
+          if (subjectInput) subjectInput.value = '';
+          if (emailContent) emailContent.value = '';
+          emailGenerated = false;
+          if (emailContentSection) emailContentSection.classList.add('hidden');
+          if (previewSection) previewSection.classList.add('hidden');
+          if (sendActions) sendActions.classList.add('hidden');
+          if (emailIntent) {
+            emailIntent.readOnly = false;
+            emailIntent.classList.remove('bg-brand-light/50');
+          }
+          updatePreview();
+        } else {
+          emailMessage.className = 'mt-4 p-4 rounded-xl text-center bg-red-50 text-red-700 border border-red-200';
+          emailMessage.textContent = result.error || 'Failed to send email';
+          emailMessage.classList.remove('hidden');
+        }
+      } catch (error: any) {
+        emailMessage.className = 'mt-4 p-4 rounded-xl text-center bg-red-50 text-red-700 border border-red-200';
+        emailMessage.textContent = 'Network error: ' + error.message;
+        emailMessage.classList.remove('hidden');
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send Email';
+      }
+    });
+  }
+</script>

@@ -666,9 +666,67 @@ Before Content phase can complete:
 **Skill:** Admin Dashboard  
 **Owner:** Admin/QA Agent (Claude)
 
-- [ ] Admin routes configured
-- [ ] Auth protecting admin
-- [ ] All sections implemented
+**Template Location:** Hub repo `/admin-dashboard-web-dev/`
+
+**Implementation Steps:**
+
+1. **Copy Template Files:**
+   ```bash
+   # From Hub repo (web-dev-team/admin-dashboard-web-dev/), copy to project:
+   
+   # Admin pages
+   cp -r admin-dashboard-web-dev/src/pages/admin your-project/src/pages/
+   
+   # Admin API endpoints
+   cp -r admin-dashboard-web-dev/src/pages/api/* your-project/src/pages/api/
+   
+   # Admin components
+   cp -r admin-dashboard-web-dev/src/components/admin your-project/src/components/
+   
+   # Utilities
+   cp admin-dashboard-web-dev/src/utils/clerk.ts your-project/src/utils/
+   
+   # Middleware (merge with existing if needed)
+   cp admin-dashboard-web-dev/src/middleware.ts.example your-project/src/middleware.ts
+   ```
+
+2. **Install Dependencies:**
+   ```bash
+   # See admin-dashboard-web-dev/docs/DEPENDENCIES.md for complete list
+   npm install @clerk/astro@^2.11.0 @supabase/supabase-js@^2.39.0 react@19.2.3 react-dom@19.2.3
+   npm install @radix-ui/react-dialog@1.1.15 @radix-ui/react-tabs@1.1.13 lucide-react@0.562.0
+   ```
+
+3. **Set Up Database:**
+   - [ ] Run `admin-dashboard-web-dev/schema.sql` in Supabase SQL Editor
+   - [ ] Verify tables created (admin_users, people, form_submissions, etc.)
+
+4. **Configure Authentication:**
+   - [ ] Follow `skills/clerk-authentication/SKILL.md` for Clerk setup
+   - [ ] Update super admin email in `src/middleware.ts`, `src/utils/clerk.ts`, `src/pages/api/add-user.ts`
+
+5. **Customize Branding:**
+   - [ ] Update logo in `src/components/admin/AdminLayout.astro`
+   - [ ] Update colors in `tailwind.config.mjs`
+   - [ ] Customize navigation in `src/components/admin/AdminSidebar.astro`
+
+6. **Set Environment Variables:**
+   - [ ] Copy `.env.example` from template
+   - [ ] Fill in all required variables (Clerk, Supabase, etc.)
+   - [ ] Set variables in production (Vercel/etc.)
+
+**Verification Checklist:**
+- [ ] Template files copied to project
+- [ ] All dependencies installed
+- [ ] Database schema applied
+- [ ] Clerk authentication working
+- [ ] Admin routes configured (`/admin/*`)
+- [ ] Auth protecting admin routes
+- [ ] Super admin can access dashboard
+- [ ] All sections functional (dashboard, users, content, forms, social, etc.)
+- [ ] Branding customized for project
+
+**Full Setup Guide:** See `admin-dashboard-web-dev/docs/SETUP-CHECKLIST.md` (60-90 minute setup)
 
 ### Step 8.1A: Authentication Setup (If Required)
 

@@ -1,0 +1,370 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import SocialIcon from '../../../components/admin/SocialIcon.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Get URL params for filtering
+const url = new URL(Astro.request.url);
+const statusFilter = url.searchParams.get('status') || '';
+
+// Fetch drafts
+let query = supabase
+  .from('social_drafts')
+  .select('*')
+  .eq('author_id', userId)
+  .order('updated_at', { ascending: false });
+
+if (statusFilter) {
+  query = query.eq('status', statusFilter);
+}
+
+const { data: drafts } = await query;
+
+// Status display info
+const statusInfo: Record<string, { label: string; color: string; bgColor: string }> = {
+  draft: { label: 'Draft', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  scheduled: { label: 'Scheduled', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  publishing: { label: 'Publishing', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+  published: { label: 'Published', color: 'text-green-700', bgColor: 'bg-green-100' },
+  partially_published: { label: 'Partial', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  failed: { label: 'Failed', color: 'text-red-700', bgColor: 'bg-red-100' },
+};
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function truncateText(text: string, maxLength: number = 100) {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+}
+---
+
+<AdminLayout title="Social Drafts | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-5xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+          Social Drafts
+        </h1>
+        <p class="text-xl text-brand-primary/70 font-body">
+          Manage your saved posts and publishing history
+        </p>
+      </div>
+      <a
+        href="/admin/social/compose"
+        class="px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors"
+      >
+        + New Post
+      </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-3xl p-4 shadow-lg border border-brand-primary/10 mb-6">
+      <div class="flex flex-wrap gap-2">
+        <a
+          href="/admin/social/drafts"
+          class={`px-4 py-2 rounded-xl font-semibold transition-colors ${
+            !statusFilter ? 'bg-brand-primary text-white' : 'bg-brand-light text-brand-primary hover:bg-brand-primary/10'
+          }`}
+        >
+          All
+        </a>
+        {Object.entries(statusInfo).map(([status, info]) => (
+          <a
+            href={`/admin/social/drafts?status=${status}`}
+            class={`px-4 py-2 rounded-xl font-semibold transition-colors ${
+              statusFilter === status ? 'bg-brand-primary text-white' : 'bg-brand-light text-brand-primary hover:bg-brand-primary/10'
+            }`}
+          >
+            {info.label}
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <!-- Drafts List -->
+    <div class="space-y-4">
+      {drafts && drafts.length > 0 ? (
+        drafts.map((draft) => {
+          const status = statusInfo[draft.status] || statusInfo.draft;
+          return (
+            <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10 hover:shadow-xl transition-shadow">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <!-- Status and Platforms -->
+                  <div class="flex items-center gap-3 mb-3">
+                    <span class={`px-3 py-1 rounded-full text-xs font-semibold ${status.bgColor} ${status.color}`}>
+                      {status.label}
+                    </span>
+                    {draft.target_platforms && draft.target_platforms.length > 0 && (
+                      <div class="flex items-center gap-1">
+                        {draft.target_platforms.map((platform: string) => (
+                          <span title={platform}>
+                            <SocialIcon platform={platform} size={18} />
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <!-- Content Preview -->
+                  <p class="text-brand-primary mb-2">
+                    {truncateText(draft.text_content || '(No text content)', 150)}
+                  </p>
+
+                  <!-- Link if present -->
+                  {draft.link_url && (
+                    <a 
+                      href={draft.link_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      class="text-sm text-brand-accent hover:underline block mb-2 truncate"
+                    >
+                      🔗 {draft.link_url}
+                    </a>
+                  )}
+
+                  <!-- Scheduled Time -->
+                  {draft.scheduled_at && (
+                    <div class="text-sm text-brand-primary/60 mb-2">
+                      📅 Scheduled: {formatDate(draft.scheduled_at)}
+                    </div>
+                  )}
+
+                  <!-- Timestamps -->
+                  <div class="flex items-center gap-4 text-xs text-brand-primary/50">
+                    <span>Created: {formatDate(draft.created_at)}</span>
+                    <span>Updated: {formatDate(draft.updated_at)}</span>
+                    {draft.published_at && (
+                      <span>Published: {formatDate(draft.published_at)}</span>
+                    )}
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col gap-2">
+                  {['draft', 'scheduled', 'failed'].includes(draft.status) && (
+                    <>
+                      <button
+                        onclick={`editDraft('${draft.id}')`}
+                        class="px-4 py-2 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors text-sm"
+                      >
+                        Edit
+                      </button>
+                      {draft.status !== 'scheduled' && (
+                        <button
+                          onclick={`publishDraft('${draft.id}')`}
+                          class="px-4 py-2 border-2 border-brand-primary text-brand-primary rounded-xl font-semibold hover:bg-brand-light transition-colors text-sm"
+                        >
+                          Publish
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {draft.status === 'publishing' && (
+                    <button
+                      onclick={`checkStatus('${draft.id}')`}
+                      class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-xl font-semibold text-sm"
+                    >
+                      Check Status
+                    </button>
+                  )}
+                  {draft.status === 'published' && (
+                    <button
+                      onclick={`viewResults('${draft.id}')`}
+                      class="px-4 py-2 bg-green-100 text-green-700 rounded-xl font-semibold text-sm"
+                    >
+                      View Results
+                    </button>
+                  )}
+                  {draft.status !== 'publishing' && (
+                    <button
+                      onclick={`deleteDraft('${draft.id}')`}
+                      class="px-4 py-2 border-2 border-red-200 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition-colors text-sm"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        <div class="bg-white rounded-3xl p-12 shadow-lg border border-brand-primary/10 text-center">
+          <div class="text-6xl mb-4">📝</div>
+          <p class="text-xl text-brand-primary/70 mb-6">
+            {statusFilter ? `No ${statusInfo[statusFilter]?.label.toLowerCase() || ''} posts found` : 'No drafts yet'}
+          </p>
+          <a
+            href="/admin/social/compose"
+            class="inline-block px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors"
+          >
+            Create Your First Post
+          </a>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <!-- Results Modal -->
+  <div id="results-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-display font-black text-brand-primary">Publishing Results</h2>
+        <button onclick="closeResultsModal()" class="text-brand-primary/60 hover:text-brand-primary text-2xl">×</button>
+      </div>
+      <div id="results-content" class="space-y-4">
+        <!-- Results will be loaded here -->
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  function editDraft(draftId: string) {
+    // TODO: Implement edit functionality
+    // For now, redirect to compose with draft ID
+    window.location.href = `/admin/social/compose?draft=${draftId}`;
+  }
+
+  async function publishDraft(draftId: string) {
+    if (!confirm('Publish this draft now?')) return;
+
+    try {
+      const response = await fetch('/api/admin/social/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(result.message || 'Publishing started!');
+        window.location.reload();
+      } else {
+        alert(result.error || 'Failed to publish');
+      }
+    } catch (error: any) {
+      alert('Error: ' + error.message);
+    }
+  }
+
+  async function checkStatus(draftId: string) {
+    try {
+      const response = await fetch(`/api/admin/social/status/${draftId}`);
+      const data = await response.json();
+
+      if (data.status === 'published') {
+        alert('Post published successfully!');
+        window.location.reload();
+      } else if (data.status === 'failed') {
+        alert('Publishing failed. Please try again.');
+        window.location.reload();
+      } else {
+        alert(`Status: ${data.status}. Still processing...`);
+      }
+    } catch (error: any) {
+      alert('Error checking status: ' + error.message);
+    }
+  }
+
+  async function viewResults(draftId: string) {
+    const modal = document.getElementById('results-modal');
+    const content = document.getElementById('results-content');
+    
+    if (!modal || !content) return;
+
+    try {
+      const response = await fetch(`/api/admin/social/status/${draftId}`);
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        content.innerHTML = data.results.map((result: any) => `
+          <div class="p-4 border rounded-xl ${result.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
+            <div class="flex items-center justify-between">
+              <div class="font-semibold ${result.success ? 'text-green-700' : 'text-red-700'}">
+                ${result.platform}
+              </div>
+              <span class="px-2 py-1 rounded text-xs ${result.success ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}">
+                ${result.success ? 'Success' : 'Failed'}
+              </span>
+            </div>
+            ${result.platform_post_url ? `
+              <a href="${result.platform_post_url}" target="_blank" class="text-sm text-blue-600 hover:underline block mt-2">
+                View post →
+              </a>
+            ` : ''}
+            ${result.error_message ? `
+              <p class="text-sm text-red-600 mt-2">${result.error_message}</p>
+            ` : ''}
+          </div>
+        `).join('');
+      } else {
+        content.innerHTML = '<p class="text-brand-primary/60">No results available.</p>';
+      }
+
+      modal.classList.remove('hidden');
+    } catch (error: any) {
+      alert('Error loading results: ' + error.message);
+    }
+  }
+
+  function closeResultsModal() {
+    const modal = document.getElementById('results-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  async function deleteDraft(draftId: string) {
+    if (!confirm('Delete this draft? This cannot be undone.')) return;
+
+    try {
+      const response = await fetch('/api/admin/social/drafts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: draftId }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        alert(result.error || 'Failed to delete');
+      }
+    } catch (error: any) {
+      alert('Error: ' + error.message);
+    }
+  }
+
+  // Expose functions to window
+  (window as any).editDraft = editDraft;
+  (window as any).publishDraft = publishDraft;
+  (window as any).checkStatus = checkStatus;
+  (window as any).viewResults = viewResults;
+  (window as any).closeResultsModal = closeResultsModal;
+  (window as any).deleteDraft = deleteDraft;
+</script>

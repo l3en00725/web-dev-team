@@ -1,0 +1,1114 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+---
+
+<AdminLayout title="Create Content | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-5xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+        Create New Content
+      </h1>
+      <p class="text-xl text-brand-primary/70 font-body">
+        Describe what you want to write about, and Claude will write the article
+      </p>
+    </div>
+
+    <!-- Content Editor -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-brand-primary/10">
+      <form id="content-form" class="space-y-6">
+        <!-- INTENT PROMPT (Initial State - Always Visible) -->
+        <div id="intent-section" class="bg-brand-light rounded-2xl p-6 border border-brand-primary/10">
+          <label for="content-intent" class="block text-brand-primary font-semibold mb-3">
+            What do you want this article to accomplish? <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            id="content-intent"
+            rows="4"
+            class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none"
+            placeholder="Describe the goal of this article... (e.g., 'Write about the impact of our basketball program on kids in Cape May County', 'Share a success story about a student who benefited from our programs', 'Explain how donations help us provide free sports instruction')"
+          ></textarea>
+          <div class="flex gap-3 mt-4">
+            <button
+              type="button"
+              id="generate-content-btn"
+              class="px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors disabled:opacity-50"
+            >
+              Generate Content
+            </button>
+            <button
+              type="button"
+              id="regenerate-content-btn"
+              class="hidden px-6 py-3 border-2 border-brand-primary text-brand-primary rounded-full font-bold hover:bg-brand-light transition-colors disabled:opacity-50"
+            >
+              🔄 Regenerate Content
+            </button>
+          </div>
+          <div id="content-ai-loading" class="hidden mt-4 text-sm text-brand-accent font-semibold">
+            🤖 Claude is writing your article...
+          </div>
+        </div>
+
+        <!-- TITLE, CONTENT & EXCERPT (Hidden until generation) -->
+        <div id="content-fields-section" class="hidden space-y-6">
+          <!-- Title -->
+          <div>
+            <label for="title" class="block text-brand-primary font-semibold mb-2">
+              Title <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              required
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary text-lg"
+              placeholder="Article title will appear here after generation..."
+            />
+            <p class="text-xs text-brand-primary/60 mt-1">
+              <span id="title-count">0</span> characters
+            </p>
+          </div>
+
+          <!-- Featured Image -->
+          <div>
+          <label for="featured-image" class="block text-brand-primary font-semibold mb-2">Featured Image</label>
+          
+          <!-- Image Generation with Claude -->
+          <div class="bg-brand-light rounded-2xl p-4 mb-4 border border-brand-primary/10">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-semibold text-brand-primary">🤖 Generate Image with OpenAI</h4>
+              <button
+                type="button"
+                id="generate-image-prompt-btn"
+                class="px-3 py-1.5 bg-brand-accent text-white rounded-lg font-semibold hover:bg-brand-accent/90 transition-colors text-xs"
+              >
+                Enhance Prompt
+              </button>
+            </div>
+            <textarea
+              id="image-prompt"
+              rows="2"
+              class="w-full px-3 py-2 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none text-sm"
+              placeholder="Describe the image you want... (e.g., 'Kids playing basketball on a sunny day in Cape May County'). This works for both AI generation and stock image search."
+            ></textarea>
+            <div id="image-prompt-loading" class="hidden mt-2 text-xs text-brand-accent">
+              🤖 Claude is enhancing your prompt...
+            </div>
+            <div id="image-prompt-result" class="hidden mt-2 p-3 bg-white rounded-lg border border-brand-primary/20">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-semibold text-brand-primary">Enhanced Prompt:</span>
+                <button type="button" onclick="copyImagePrompt()" class="text-xs text-brand-accent hover:underline">
+                  Copy
+                </button>
+              </div>
+              <p id="image-prompt-text" class="text-xs text-brand-primary/80"></p>
+            </div>
+            <div class="flex gap-2 mt-3">
+              <button
+                type="button"
+                id="generate-image-btn"
+                class="px-4 py-2 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors text-sm disabled:opacity-50"
+              >
+                Generate Image
+              </button>
+              <button
+                type="button"
+                id="search-stock-btn"
+                class="px-4 py-2 border-2 border-brand-primary text-brand-primary rounded-xl font-semibold hover:bg-brand-light transition-colors text-sm"
+              >
+                Search Stock Images
+              </button>
+            </div>
+            <div id="image-generation-status" class="hidden mt-3 text-sm text-brand-primary/70"></div>
+          </div>
+
+          <!-- Image URL Input -->
+          <div class="flex items-center gap-4">
+            <input
+              type="url"
+              id="featured-image-url"
+              name="featuredImageUrl"
+              class="flex-1 px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              placeholder="Paste image URL or generate above..."
+            />
+            <button
+              type="button"
+              id="upload-image-btn"
+              class="px-4 py-3 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors"
+            >
+              Upload
+            </button>
+          </div>
+          <div id="image-preview" class="hidden mt-4">
+            <img id="preview-img" src="" alt="Preview" class="max-w-md rounded-xl border border-brand-primary/20" />
+          </div>
+          <p class="text-xs text-brand-primary/60 mt-1">
+            Generate with AI, search stock images, upload to Supabase Storage, or paste image URL. Recommended: 1200x630px for social sharing.
+          </p>
+          </div>
+
+          <!-- Content Editor -->
+          <div>
+            <label for="content" class="block text-brand-primary font-semibold mb-2">
+              Content <span class="text-red-500">*</span>
+              <span class="text-xs font-normal text-brand-primary/60 ml-2">(Editable after generation)</span>
+            </label>
+            <textarea
+              id="content"
+              name="content"
+              rows="20"
+              required
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none font-mono text-sm"
+              placeholder="Article content will appear here after generation..."
+            ></textarea>
+            <p class="text-sm text-brand-primary/60 mt-2">
+              Supports Markdown formatting. Use **bold**, *italic*, # headings, etc. Edit as needed before publishing.
+            </p>
+          </div>
+
+          <!-- Excerpt -->
+          <div>
+            <label for="excerpt" class="block text-brand-primary font-semibold mb-2">Excerpt</label>
+            <textarea
+              id="excerpt"
+              name="excerpt"
+              rows="3"
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none"
+              placeholder="Brief summary for previews and social sharing..."
+            ></textarea>
+          </div>
+
+          <!-- Revise Button -->
+          <div class="flex items-center justify-between pt-4 border-t border-brand-primary/10">
+            <button
+              type="button"
+              id="revise-content-btn"
+              class="px-4 py-2 border-2 border-brand-primary text-brand-primary rounded-xl font-semibold hover:bg-brand-light transition-colors text-sm"
+            >
+              🔄 Revise with Claude
+            </button>
+            <span class="text-xs text-brand-primary/60">
+              Not quite right? Edit the content above and have Claude revise it.
+            </span>
+          </div>
+
+          <!-- SEO Settings -->
+        <div class="border-t border-brand-primary/10 pt-6">
+          <h3 class="text-lg font-display font-bold text-brand-primary mb-4">SEO Settings</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="meta-title" class="block text-brand-primary font-semibold mb-2">
+                Meta Title <span class="text-xs text-brand-primary/60">(60 chars max)</span>
+              </label>
+              <input
+                type="text"
+                id="meta-title"
+                name="metaTitle"
+                maxlength="60"
+                class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                placeholder="SEO title (auto-generated from title if empty)"
+              />
+              <p class="text-xs text-brand-primary/60 mt-1">
+                <span id="meta-title-count">0</span>/60 characters
+              </p>
+            </div>
+            <div>
+              <label for="canonical-url" class="block text-brand-primary font-semibold mb-2">
+                Canonical URL <span class="text-red-500">*</span> <span class="text-xs text-brand-primary/60">(for social publishing)</span>
+              </label>
+              <input
+                type="url"
+                id="canonical-url"
+                name="canonicalUrl"
+                required
+                class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                placeholder="https://thebluekids.com/impact-stories/..."
+              />
+            </div>
+          </div>
+          <div class="mt-4">
+            <label for="meta-description" class="block text-brand-primary font-semibold mb-2">
+              Meta Description <span class="text-xs text-brand-primary/60">(160 chars max)</span>
+            </label>
+            <textarea
+              id="meta-description"
+              name="metaDescription"
+              rows="2"
+              maxlength="160"
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none"
+              placeholder="SEO description (auto-generated from excerpt if empty)"
+            ></textarea>
+            <p class="text-xs text-brand-primary/60 mt-1">
+              <span id="meta-description-count">0</span>/160 characters
+            </p>
+          </div>
+
+          <!-- Social Publishing -->
+        <div class="border-t border-brand-primary/10 pt-6">
+          <h3 class="text-lg font-display font-bold text-brand-primary mb-4">Publish to Social Media</h3>
+          <p class="text-sm text-brand-primary/60 mb-4">
+            Each admin user connects their own social accounts. You can publish directly via API or copy/paste the formatted content.
+          </p>
+          <div class="space-y-3">
+            <label class="flex items-center gap-3 p-4 bg-brand-light rounded-xl border border-brand-primary/10 cursor-pointer hover:bg-brand-primary/5 transition-colors">
+              <input type="checkbox" name="publishLinkedIn" id="publish-linkedin" class="w-5 h-5 text-brand-primary rounded focus:ring-brand-primary" />
+              <div class="flex-1">
+                <div class="font-semibold text-brand-primary">LinkedIn</div>
+                <div class="text-sm text-brand-primary/60">Publish to your connected LinkedIn account</div>
+              </div>
+              <button type="button" class="text-xs text-brand-accent hover:underline" onclick="showSocialCopy('linkedin')">
+                Copy Text
+              </button>
+            </label>
+            <label class="flex items-center gap-3 p-4 bg-brand-light rounded-xl border border-brand-primary/10 cursor-pointer hover:bg-brand-primary/5 transition-colors">
+              <input type="checkbox" name="publishMeta" id="publish-meta" class="w-5 h-5 text-brand-primary rounded focus:ring-brand-primary" />
+              <div class="flex-1">
+                <div class="font-semibold text-brand-primary">Meta (Facebook)</div>
+                <div class="text-sm text-brand-primary/60">Publish to your connected Facebook page</div>
+              </div>
+              <button type="button" class="text-xs text-brand-accent hover:underline" onclick="showSocialCopy('meta')">
+                Copy Text
+              </button>
+            </label>
+            <label class="flex items-center gap-3 p-4 bg-brand-light rounded-xl border border-brand-primary/10 cursor-pointer hover:bg-brand-primary/5 transition-colors">
+              <input type="checkbox" name="publishX" id="publish-x" class="w-5 h-5 text-brand-primary rounded focus:ring-brand-primary" />
+              <div class="flex-1">
+                <div class="font-semibold text-brand-primary">X (Twitter)</div>
+                <div class="text-sm text-brand-primary/60">Publish to your connected X account</div>
+              </div>
+              <button type="button" class="text-xs text-brand-accent hover:underline" onclick="showSocialCopy('x')">
+                Copy Text
+              </button>
+            </label>
+            <label class="flex items-center gap-3 p-4 bg-brand-light rounded-xl border border-brand-primary/10 cursor-pointer hover:bg-brand-primary/5 transition-colors">
+              <input type="checkbox" name="publishMedium" id="publish-medium" class="w-5 h-5 text-brand-primary rounded focus:ring-brand-primary" />
+              <div class="flex-1">
+                <div class="font-semibold text-brand-primary">Medium</div>
+                <div class="text-sm text-brand-primary/60">Publish to your connected Medium publication</div>
+              </div>
+              <button type="button" class="text-xs text-brand-accent hover:underline" onclick="showSocialCopy('medium')">
+                Copy Text
+              </button>
+            </label>
+          </div>
+          <div id="social-copy-modal" class="hidden mt-4 p-4 bg-white rounded-xl border-2 border-brand-accent">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-semibold text-brand-primary" id="social-platform-name">LinkedIn</span>
+              <button type="button" onclick="closeSocialCopy()" class="text-brand-primary/60 hover:text-brand-primary">✕</button>
+            </div>
+            <textarea
+              id="social-copy-text"
+              rows="4"
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary resize-none font-mono text-sm"
+              readonly
+            ></textarea>
+            <button
+              type="button"
+              onclick="copySocialText()"
+              class="mt-2 px-4 py-2 bg-brand-accent text-white rounded-xl font-semibold hover:bg-brand-accent/90 transition-colors text-sm"
+            >
+              Copy to Clipboard
+            </button>
+          </div>
+          <p class="text-sm text-brand-primary/60 mt-4">
+            <strong>Note:</strong> Canonical URL is required for social publishing. Connect your accounts in <a href="/admin/social/connections" class="text-brand-accent hover:underline">Social Settings</a>.
+          </p>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div id="publish-actions" class="hidden flex gap-4 pt-6 border-t border-brand-primary/10">
+          <button
+            type="submit"
+            name="action"
+            value="draft"
+            class="px-6 py-3 border-2 border-brand-primary text-brand-primary rounded-full font-bold hover:bg-brand-light transition-colors"
+          >
+            Save as Draft
+          </button>
+          <button
+            type="submit"
+            name="action"
+            value="publish"
+            class="px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark transition-colors disabled:opacity-50"
+          >
+            Publish & Share
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  // Character counters
+  const titleInput = document.getElementById('title');
+  const titleCount = document.getElementById('title-count');
+  const metaTitleInput = document.getElementById('meta-title');
+  const metaTitleCount = document.getElementById('meta-title-count');
+  const metaDescInput = document.getElementById('meta-description');
+  const metaDescCount = document.getElementById('meta-description-count');
+  
+  // Image URL input (used in multiple functions)
+  const imageUrlInput = document.getElementById('featured-image-url') as HTMLInputElement;
+
+  if (titleInput && titleCount) {
+    titleInput.addEventListener('input', () => {
+      titleCount.textContent = titleInput.value.length;
+      // Auto-generate meta title if empty
+      if (!metaTitleInput.value && titleInput.value) {
+        metaTitleInput.value = titleInput.value.length > 60 
+          ? titleInput.value.substring(0, 57) + '...'
+          : titleInput.value;
+        metaTitleCount.textContent = metaTitleInput.value.length;
+      }
+    });
+  }
+
+  if (metaTitleInput && metaTitleCount) {
+    metaTitleInput.addEventListener('input', () => {
+      metaTitleCount.textContent = metaTitleInput.value.length;
+      if (metaTitleInput.value.length > 60) {
+        metaTitleCount.classList.add('text-red-500');
+      } else {
+        metaTitleCount.classList.remove('text-red-500');
+      }
+    });
+  }
+
+  if (metaDescInput && metaDescCount) {
+    metaDescInput.addEventListener('input', () => {
+      metaDescCount.textContent = metaDescInput.value.length;
+      if (metaDescInput.value.length > 160) {
+        metaDescCount.classList.add('text-red-500');
+      } else {
+        metaDescCount.classList.remove('text-red-500');
+      }
+    });
+  }
+
+  // Image Generation with Claude
+  const imagePrompt = document.getElementById('image-prompt');
+  const generateImagePromptBtn = document.getElementById('generate-image-prompt-btn');
+  const imagePromptLoading = document.getElementById('image-prompt-loading');
+  const imagePromptResult = document.getElementById('image-prompt-result');
+  const imagePromptText = document.getElementById('image-prompt-text');
+  const generateImageBtn = document.getElementById('generate-image-btn');
+  const imageGenerationStatus = document.getElementById('image-generation-status');
+
+  // Enhance image prompt with Claude
+  if (generateImagePromptBtn && imagePrompt) {
+    generateImagePromptBtn.addEventListener('click', async () => {
+      if (!imagePrompt.value.trim()) {
+        alert('Please enter an image description first');
+        return;
+      }
+
+      generateImagePromptBtn.disabled = true;
+      imagePromptLoading.classList.remove('hidden');
+      imagePromptResult.classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/ai/enhance-image-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: imagePrompt.value }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          imagePromptText.textContent = data.enhancedPrompt;
+          imagePromptResult.classList.remove('hidden');
+          imagePrompt.value = data.enhancedPrompt; // Update the input
+        } else {
+          alert('Error: ' + (data.error || 'Failed to enhance prompt'));
+        }
+      } catch (error: any) {
+        alert('Error: ' + error.message);
+      } finally {
+        generateImagePromptBtn.disabled = false;
+        imagePromptLoading.classList.add('hidden');
+      }
+    });
+  }
+
+  // Generate image (placeholder - would integrate with image generation API)
+  if (generateImageBtn && imagePrompt) {
+    generateImageBtn.addEventListener('click', async () => {
+      if (!imagePrompt.value.trim()) {
+        alert('Please enter an image description first');
+        return;
+      }
+
+      generateImageBtn.disabled = true;
+      imageGenerationStatus.classList.remove('hidden');
+      imageGenerationStatus.textContent = 'Generating image... This may take a moment.';
+
+      try {
+        const response = await fetch('/api/ai/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: imagePrompt.value }),
+        });
+
+        const data = await response.json();
+        if (data.success && data.imageUrl) {
+          if (imageUrlInput) {
+            imageUrlInput.value = data.imageUrl;
+            updateImagePreview(data.imageUrl);
+          }
+          imageGenerationStatus.textContent = '✅ Image generated successfully!';
+          imageGenerationStatus.classList.add('text-green-600');
+        } else {
+          imageGenerationStatus.textContent = 'Error: ' + (data.error || 'Failed to generate image');
+          imageGenerationStatus.classList.add('text-red-600');
+        }
+      } catch (error: any) {
+        imageGenerationStatus.textContent = 'Error: ' + error.message;
+        imageGenerationStatus.classList.add('text-red-600');
+      } finally {
+        generateImageBtn.disabled = false;
+      }
+    });
+  }
+
+  // Stock Image Search
+  const searchStockBtn = document.getElementById('search-stock-btn');
+  
+  if (searchStockBtn && imagePrompt) {
+    searchStockBtn.addEventListener('click', async () => {
+      // Use textarea value if available, otherwise prompt user
+      let query = imagePrompt.value.trim();
+      
+      if (!query) {
+        query = prompt('Enter search terms for stock images (e.g., "kids basketball", "youth sports", "children playing"):');
+        if (!query) return;
+      }
+      
+      // If user entered something in the prompt, use it for the search
+      if (query) {
+        // Optionally update the textarea with the search query
+        imagePrompt.value = query;
+      }
+
+      searchStockBtn.disabled = true;
+      searchStockBtn.textContent = 'Searching...';
+
+      try {
+        const response = await fetch(`/api/admin/search-stock-images?q=${encodeURIComponent(query)}&per_page=12`);
+        const result = await response.json();
+
+        if (response.ok && result.success && result.photos.length > 0) {
+          showStockImageModal(result.photos, query);
+        } else {
+          alert(result.error || 'No images found. Try different search terms.');
+        }
+      } catch (error: any) {
+        alert('Error searching stock images: ' + error.message);
+      } finally {
+        searchStockBtn.disabled = false;
+        searchStockBtn.textContent = 'Search Stock Images';
+      }
+    });
+  }
+
+  function showStockImageModal(photos: any[], query: string) {
+    // Remove existing modal if any
+    const existingModal = document.querySelector('.stock-image-modal');
+    if (existingModal) existingModal.remove();
+
+    // Create modal HTML
+    const modal = document.createElement('div');
+    modal.className = 'stock-image-modal fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+    modal.innerHTML = `
+      <div class="bg-white rounded-3xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-display font-bold text-brand-primary">Stock Images: "${query}"</h3>
+          <button onclick="closeStockImageModal()" class="text-brand-primary/60 hover:text-brand-primary text-2xl">×</button>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          ${photos.map(photo => `
+            <div class="cursor-pointer group" onclick="selectStockImage('${photo.landscapeUrl || photo.originalUrl}', '${photo.photographer.replace(/'/g, "\\'")}')">
+              <img src="${photo.url}" alt="${photo.alt}" class="w-full h-40 object-cover rounded-lg border-2 border-transparent group-hover:border-brand-primary transition-colors" />
+              <p class="text-xs text-brand-primary/60 mt-1">Photo by ${photo.photographer}</p>
+            </div>
+          `).join('')}
+        </div>
+        <div class="mt-4 text-xs text-brand-primary/60 text-center">
+          Images from <a href="https://pexels.com" target="_blank" class="text-brand-accent hover:underline">Pexels</a> - Free for commercial use
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeStockImageModal();
+    });
+  }
+
+  function closeStockImageModal() {
+    const modal = document.querySelector('.stock-image-modal');
+    if (modal) modal.remove();
+  }
+
+  function selectStockImage(imageUrl: string, photographer: string) {
+    if (imageUrlInput) {
+      imageUrlInput.value = imageUrl;
+      updateImagePreview(imageUrl);
+    }
+    closeStockImageModal();
+    alert(`Image selected! Photo by ${photographer} on Pexels`);
+  }
+
+  (window as any).selectStockImage = selectStockImage;
+  (window as any).closeStockImageModal = closeStockImageModal;
+
+  // Copy image prompt
+  function copyImagePrompt() {
+    if (imagePromptText) {
+      navigator.clipboard.writeText(imagePromptText.textContent || '');
+      alert('Prompt copied to clipboard!');
+    }
+  }
+  (window as any).copyImagePrompt = copyImagePrompt;
+
+  // Image preview
+  const imagePreview = document.getElementById('image-preview');
+  const previewImg = document.getElementById('preview-img');
+
+  function updateImagePreview(url: string) {
+    if (previewImg && imagePreview) {
+      previewImg.src = url;
+      imagePreview.classList.remove('hidden');
+    }
+  }
+
+  if (imageUrlInput && imagePreview && previewImg) {
+    imageUrlInput.addEventListener('input', () => {
+      if (imageUrlInput.value) {
+        updateImagePreview(imageUrlInput.value);
+      } else {
+        imagePreview.classList.add('hidden');
+      }
+    });
+  }
+
+  // Content textarea reference (used in revision)
+  const contentTextarea = document.getElementById('content') as HTMLTextAreaElement;
+
+  // Social copy functions
+  function showSocialCopy(platform: string) {
+    const modal = document.getElementById('social-copy-modal');
+    const platformName = document.getElementById('social-platform-name');
+    const copyText = document.getElementById('social-copy-text');
+    const title = titleInput?.value || '';
+    const excerpt = document.getElementById('excerpt')?.value || '';
+    const canonicalUrl = document.getElementById('canonical-url')?.value || '';
+
+    if (!modal || !platformName || !copyText) return;
+
+    const platformNames: Record<string, string> = {
+      linkedin: 'LinkedIn',
+      meta: 'Meta (Facebook)',
+      x: 'X (Twitter)',
+      medium: 'Medium',
+    };
+
+    let formattedText = '';
+    if (platform === 'linkedin') {
+      formattedText = `${title}\n\n${excerpt}\n\nRead more: ${canonicalUrl}`;
+    } else if (platform === 'meta') {
+      formattedText = `${title}\n\n${excerpt}\n\n${canonicalUrl}`;
+    } else if (platform === 'x') {
+      const maxLength = 280;
+      const urlLength = canonicalUrl.length + 3; // " - " + URL
+      const availableLength = maxLength - urlLength;
+      const text = `${title}\n\n${excerpt}`;
+      formattedText = text.length > availableLength
+        ? text.substring(0, availableLength - 3) + '...' + ' - ' + canonicalUrl
+        : text + ' - ' + canonicalUrl;
+    } else if (platform === 'medium') {
+      formattedText = `# ${title}\n\n${excerpt}\n\n[Read more](${canonicalUrl})`;
+    }
+
+    platformName.textContent = platformNames[platform] || platform;
+    copyText.value = formattedText;
+    modal.classList.remove('hidden');
+  }
+
+  function closeSocialCopy() {
+    const modal = document.getElementById('social-copy-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function copySocialText() {
+    const copyText = document.getElementById('social-copy-text') as HTMLTextAreaElement;
+    if (copyText) {
+      navigator.clipboard.writeText(copyText.value);
+      alert('Copied to clipboard!');
+    }
+  }
+
+  // Image Upload Functionality
+  const uploadImageBtn = document.getElementById('upload-image-btn');
+  const imageFileInput = document.getElementById('image-file-input') as HTMLInputElement;
+  const uploadStatus = document.getElementById('upload-status');
+
+  if (uploadImageBtn && imageFileInput) {
+    uploadImageBtn.addEventListener('click', () => {
+      imageFileInput.click();
+    });
+
+    imageFileInput.addEventListener('change', async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        if (uploadStatus) {
+          uploadStatus.className = 'mt-2 text-sm text-red-600';
+          uploadStatus.textContent = 'File too large. Maximum size is 5MB.';
+          uploadStatus.classList.remove('hidden');
+        }
+        return;
+      }
+
+      // Show upload status
+      uploadImageBtn.disabled = true;
+      uploadImageBtn.textContent = 'Uploading...';
+      if (uploadStatus) {
+        uploadStatus.className = 'mt-2 text-sm text-brand-accent';
+        uploadStatus.textContent = 'Uploading image...';
+        uploadStatus.classList.remove('hidden');
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/admin/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.imageUrl) {
+          if (imageUrlInput) {
+            imageUrlInput.value = result.imageUrl;
+            updateImagePreview(result.imageUrl);
+          }
+          if (uploadStatus) {
+            uploadStatus.className = 'mt-2 text-sm text-green-600';
+            uploadStatus.textContent = '✓ Image uploaded successfully!';
+          }
+        } else {
+          if (uploadStatus) {
+            uploadStatus.className = 'mt-2 text-sm text-red-600';
+            uploadStatus.textContent = result.error || 'Failed to upload image';
+          }
+        }
+      } catch (error: any) {
+        if (uploadStatus) {
+          uploadStatus.className = 'mt-2 text-sm text-red-600';
+          uploadStatus.textContent = 'Error: ' + error.message;
+        }
+      } finally {
+        uploadImageBtn.disabled = false;
+        uploadImageBtn.textContent = 'Upload Image';
+        // Clear file input
+        imageFileInput.value = '';
+      }
+    });
+  }
+
+  // Markdown to HTML converter for preview
+  function markdownToHtml(markdown: string): string {
+    if (!markdown) return '';
+    
+    let html = markdown;
+    
+    // Headers (must be done first, before paragraph conversion)
+    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    
+    // Bold
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Italic
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    
+    // Split into paragraphs (double newlines)
+    const paragraphs = html.split(/\n\n+/);
+    return paragraphs.map(para => {
+      const trimmed = para.trim();
+      if (!trimmed) return '';
+      
+      // Skip if already an HTML tag (headers, lists, etc.)
+      if (trimmed.match(/^<[h|u|o|l]/)) {
+        return trimmed;
+      }
+      
+      // Convert single newlines to <br> within paragraphs
+      const withBreaks = trimmed.replace(/\n/g, '<br>');
+      return '<p>' + withBreaks + '</p>';
+    }).filter(p => p).join('');
+  }
+
+  // Preview functionality
+  function showPreview() {
+    const title = titleInput?.value || '';
+    const content = (document.getElementById('content') as HTMLTextAreaElement)?.value || '';
+    const excerpt = (document.getElementById('excerpt') as HTMLTextAreaElement)?.value || '';
+    const featuredImageUrl = imageUrlInput?.value || '';
+    const metaTitle = metaTitleInput?.value || title;
+    const metaDescription = (document.getElementById('meta-description') as HTMLTextAreaElement)?.value || excerpt;
+
+    if (!title || !content) {
+      alert('Please fill in at least the title and content to preview.');
+      return;
+    }
+
+    // Escape HTML for safe insertion
+    function escapeHtml(text: string): string {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Create preview window
+    const previewWindow = window.open('', '_blank', 'width=1200,height=800');
+    if (!previewWindow) {
+      alert('Please allow popups to view the preview.');
+      return;
+    }
+
+    // Convert markdown to HTML
+    const contentHtml = markdownToHtml(content);
+
+    // Generate preview HTML
+    const previewHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(metaTitle)} | Impact Stories | The Blue Kids</title>
+  <meta name="description" content="${escapeHtml(metaDescription)}">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: #1a1a1a;
+      background: #fff;
+    }
+    .header {
+      background: linear-gradient(135deg, #0066cc 0%, #00aaff 100%);
+      color: white;
+      padding: 4rem 2rem 2rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .back-link {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .back-link:hover { color: white; }
+    h1 {
+      font-size: 3rem;
+      font-weight: 900;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+    .excerpt {
+      font-size: 1.25rem;
+      opacity: 0.9;
+      margin-top: 1rem;
+    }
+    .featured-image {
+      width: 100%;
+      max-width: 900px;
+      margin: 2rem auto;
+      display: block;
+      border-radius: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+    .content h1 { font-size: 2.5rem; margin: 2rem 0 1rem; }
+    .content h2 { font-size: 2rem; margin: 2rem 0 1rem; color: #0066cc; }
+    .content h3 { font-size: 1.5rem; margin: 1.5rem 0 0.75rem; color: #0066cc; }
+    .content p {
+      font-size: 1.125rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.8;
+      color: #333;
+    }
+    .content strong { font-weight: 700; color: #1a1a1a; }
+    .content a { color: #00aaff; text-decoration: none; font-weight: 600; }
+    .content a:hover { text-decoration: underline; }
+    .cta-section {
+      background: #f0f7ff;
+      padding: 3rem 2rem;
+      text-align: center;
+      margin-top: 3rem;
+    }
+    .cta-button {
+      display: inline-block;
+      background: #00aaff;
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 2rem;
+      text-decoration: none;
+      font-weight: 700;
+      margin-top: 1rem;
+    }
+    .cta-button:hover { background: #0088cc; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <a href="/impact-stories/" class="back-link">
+        <span style="margin-right: 0.5rem;">←</span>
+        Back to Impact Stories
+      </a>
+      <h1>${escapeHtml(title)}</h1>
+      ${excerpt ? `<p class="excerpt">${escapeHtml(excerpt)}</p>` : ''}
+    </div>
+  </div>
+  
+  ${featuredImageUrl ? `<img src="${escapeHtml(featuredImageUrl)}" alt="${escapeHtml(title)}" class="featured-image" />` : ''}
+  
+  <div class="content">
+    ${contentHtml}
+  </div>
+  
+  <div class="cta-section">
+    <h2 style="color: #0066cc; margin-bottom: 1rem;">Want to Make an Impact?</h2>
+    <p style="color: #666; margin-bottom: 1rem;">Support The Blue Kids and help us create more stories like this one.</p>
+    <a href="/donate" class="cta-button">Donate Now →</a>
+  </div>
+</body>
+</html>`;
+
+    previewWindow.document.write(previewHTML);
+    previewWindow.document.close();
+  }
+
+  // Add preview button
+  const actionsDiv = document.querySelector('.flex.gap-4.pt-6.border-t');
+  if (actionsDiv) {
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button';
+    previewBtn.textContent = 'Preview';
+    previewBtn.className = 'px-6 py-3 border-2 border-brand-accent text-brand-accent rounded-full font-bold hover:bg-brand-accent/10 transition-colors';
+    previewBtn.onclick = showPreview;
+    actionsDiv.insertBefore(previewBtn, actionsDiv.firstChild);
+  }
+
+  // Make functions global for onclick handlers
+  (window as any).showSocialCopy = showSocialCopy;
+  (window as any).closeSocialCopy = closeSocialCopy;
+  (window as any).copySocialText = copySocialText;
+
+  // State management: Track if content has been generated
+  let contentGenerated = false;
+
+  // Claude AI Content Generation - Intent-based (like email)
+  const generateContentBtn = document.getElementById('generate-content-btn');
+  const regenerateContentBtn = document.getElementById('regenerate-content-btn');
+  const reviseContentBtn = document.getElementById('revise-content-btn');
+  const contentIntent = document.getElementById('content-intent') as HTMLTextAreaElement;
+  const contentAiLoading = document.getElementById('content-ai-loading');
+  const intentSection = document.getElementById('intent-section');
+  const contentFieldsSection = document.getElementById('content-fields-section');
+  const excerptTextarea = document.getElementById('excerpt') as HTMLTextAreaElement;
+
+  // Helper: Show generated content UI
+  function showGeneratedContentUI() {
+    contentGenerated = true;
+    if (contentFieldsSection) contentFieldsSection.classList.remove('hidden');
+    // Show publish actions
+    const publishActions = document.getElementById('publish-actions');
+    if (publishActions) publishActions.classList.remove('hidden');
+    // Show regenerate button
+    if (regenerateContentBtn) regenerateContentBtn.classList.remove('hidden');
+    // Make intent read-only (but keep visible for regeneration)
+    if (contentIntent) {
+      contentIntent.readOnly = true;
+      contentIntent.classList.add('bg-brand-light/50');
+    }
+  }
+
+  // Helper: Generate content from intent
+  async function generateContentFromIntent(intent: string, existingTitle?: string) {
+    try {
+      const response = await fetch('/api/ai/generate-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent, title: existingTitle }),
+      });
+
+      // Check if endpoint exists (404 means route not found)
+      if (response.status === 404) {
+        alert('API endpoint not found. Please check if the server is running and the route exists.');
+        return false;
+      }
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        if (titleInput) titleInput.value = result.title || '';
+        if (contentTextarea) contentTextarea.value = result.content || '';
+        if (excerptTextarea) excerptTextarea.value = result.excerpt || '';
+        showGeneratedContentUI();
+        // Update character counts
+        if (titleCount) titleCount.textContent = (result.title || '').length;
+        return true;
+      } else {
+        alert(result.error || 'Failed to generate content. Please check Claude API key.');
+        return false;
+      }
+    } catch (error: any) {
+      // Network errors or other fetch failures
+      console.error('Content generation error:', error);
+      alert(`Error: ${error.message || 'Failed to connect to API. Please check your connection and try again.'}`);
+      return false;
+    }
+  }
+
+  // Generate Content button
+  if (generateContentBtn && contentIntent) {
+    generateContentBtn.addEventListener('click', async () => {
+      const intent = contentIntent.value.trim();
+      if (!intent) {
+        alert('Please describe what you want this article to accomplish.');
+        return;
+      }
+
+      generateContentBtn.disabled = true;
+      generateContentBtn.textContent = 'Generating...';
+      if (contentAiLoading) contentAiLoading.classList.remove('hidden');
+
+      try {
+        await generateContentFromIntent(intent);
+      } catch (error: any) {
+        alert('Error generating content: ' + error.message);
+      } finally {
+        generateContentBtn.disabled = false;
+        generateContentBtn.textContent = 'Generate Content';
+        if (contentAiLoading) contentAiLoading.classList.add('hidden');
+      }
+    });
+  }
+
+  // Regenerate Content button
+  if (regenerateContentBtn && contentIntent) {
+    regenerateContentBtn.addEventListener('click', async () => {
+      const intent = contentIntent.value.trim();
+      if (!intent) {
+        alert('Please update the intent description above first.');
+        return;
+      }
+
+      regenerateContentBtn.disabled = true;
+      regenerateContentBtn.textContent = 'Regenerating...';
+      if (contentAiLoading) contentAiLoading.classList.remove('hidden');
+
+      try {
+        const existingTitle = titleInput?.value || undefined;
+        await generateContentFromIntent(intent, existingTitle);
+      } catch (error: any) {
+        alert('Error regenerating content: ' + error.message);
+      } finally {
+        regenerateContentBtn.disabled = false;
+        regenerateContentBtn.textContent = '🔄 Regenerate Content';
+        if (contentAiLoading) contentAiLoading.classList.add('hidden');
+      }
+    });
+  }
+
+  // Revise Content button
+  if (reviseContentBtn && contentTextarea && titleInput) {
+    reviseContentBtn.addEventListener('click', async () => {
+      const currentContent = contentTextarea.value.trim();
+      const currentTitle = titleInput.value.trim();
+      const currentExcerpt = excerptTextarea?.value.trim() || '';
+
+      if (!currentContent) {
+        alert('Please generate or write some content first before revising.');
+        return;
+      }
+
+      // Optional: Ask for revision instructions
+      const revisionInstructions = prompt(
+        'How would you like Claude to revise this content? (Leave empty for general improvements)\n\nExamples:\n- "Make it more engaging"\n- "Add more specific examples"\n- "Shorten the introduction"\n- "Improve the conclusion"'
+      );
+
+      reviseContentBtn.disabled = true;
+      reviseContentBtn.textContent = 'Revising...';
+      if (contentAiLoading) contentAiLoading.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/ai/revise-content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: currentContent,
+            title: currentTitle,
+            excerpt: currentExcerpt,
+            revisionInstructions: revisionInstructions || undefined,
+          }),
+        });
+
+        if (response.status === 404) {
+          alert('API endpoint not found. Please check if the server is running and the route exists.');
+          return;
+        }
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          if (titleInput) titleInput.value = result.title || currentTitle;
+          if (contentTextarea) contentTextarea.value = result.content || currentContent;
+          if (excerptTextarea) excerptTextarea.value = result.excerpt || currentExcerpt;
+          // Update character counts
+          if (titleCount) titleCount.textContent = (result.title || currentTitle).length;
+          alert('Content revised successfully! Review the changes and edit as needed.');
+        } else {
+          alert(result.error || 'Failed to revise content. Please check Claude API key.');
+        }
+      } catch (error: any) {
+        console.error('Content revision error:', error);
+        alert(`Error: ${error.message || 'Failed to connect to API. Please check your connection and try again.'}`);
+      } finally {
+        reviseContentBtn.disabled = false;
+        reviseContentBtn.textContent = '🔄 Revise with Claude';
+        if (contentAiLoading) contentAiLoading.classList.add('hidden');
+      }
+    });
+  }
+</script>

@@ -1,0 +1,153 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Fetch donors with donation totals
+const { data: donors } = await supabase
+  .from('donors')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .limit(100);
+
+// Fetch donation totals for each donor
+const donorStats = await Promise.all(
+  (donors || []).map(async (donor) => {
+    const { data: donations } = await supabase
+      .from('donations')
+      .select('amount_dollars, created_at, type, status')
+      .eq('user_id', donor.user_id)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false });
+
+    const totalDonated = donations?.reduce((sum, d) => sum + parseFloat(d.amount_dollars || 0), 0) || 0;
+    const ytdDonated = donations?.filter(d => {
+      const donationDate = new Date(d.created_at);
+      const currentYear = new Date().getFullYear();
+      return donationDate.getFullYear() === currentYear;
+    }).reduce((sum, d) => sum + parseFloat(d.amount_dollars || 0), 0) || 0;
+
+    return {
+      ...donor,
+      totalDonated,
+      ytdDonated,
+      donationCount: donations?.length || 0,
+      lastDonation: donations?.[0]?.created_at || null,
+    };
+  })
+);
+---
+
+<AdminLayout title="Donors | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+        Donors
+      </h1>
+      <p class="text-xl text-brand-primary/70 font-body">
+        Manage donors and view donation history
+      </p>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input
+          type="text"
+          placeholder="Search by name or email..."
+          class="px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+        />
+        <select class="px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary">
+          <option>All Donors</option>
+          <option>Recurring Only</option>
+          <option>One-Time Only</option>
+        </select>
+        <button class="px-6 py-3 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors">
+          Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Donors Table -->
+    <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10">
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="border-b border-brand-primary/10">
+              <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Donor</th>
+              <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Email</th>
+              <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Total Donated</th>
+              <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">YTD</th>
+              <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Donations</th>
+              <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Last Donation</th>
+              <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {donorStats && donorStats.length > 0 ? (
+              donorStats.map((donor) => (
+                <tr class="border-b border-brand-primary/5 hover:bg-brand-light/50">
+                  <td class="py-4 px-4">
+                    <div class="font-semibold text-brand-primary">{donor.name || 'Anonymous'}</div>
+                    {donor.phone && (
+                      <div class="text-xs text-brand-primary/60">{donor.phone}</div>
+                    )}
+                  </td>
+                  <td class="py-4 px-4 text-sm text-brand-primary/80">
+                    <a href={`mailto:${donor.email}`} class="text-brand-accent hover:underline">
+                      {donor.email}
+                    </a>
+                  </td>
+                  <td class="py-4 px-4">
+                    <div class="font-bold text-brand-primary">
+                      ${donor.totalDonated.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </td>
+                  <td class="py-4 px-4">
+                    <div class="font-semibold text-brand-accent">
+                      ${donor.ytdDonated.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </td>
+                  <td class="py-4 px-4 text-sm text-brand-primary/80">
+                    {donor.donationCount}
+                  </td>
+                  <td class="py-4 px-4 text-sm text-brand-primary/80">
+                    {donor.lastDonation ? (
+                      new Date(donor.lastDonation).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    ) : (
+                      'Never'
+                    )}
+                  </td>
+                  <td class="py-4 px-4">
+                    <a href={`/admin/donors/${donor.user_id}`} class="text-brand-accent hover:text-brand-primary font-semibold text-sm">
+                      View Details →
+                    </a>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colspan="7" class="py-8 text-center text-brand-primary/70">
+                  No donors yet
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</AdminLayout>

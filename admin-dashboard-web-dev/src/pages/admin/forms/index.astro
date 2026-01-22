@@ -1,0 +1,342 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Fetch all form submissions
+const [
+  { data: contactSubmissions } = { data: [] },
+  { data: volunteerApplications } = { data: [] },
+  { data: eventRegistrations } = { data: [] },
+] = await Promise.all([
+  supabase.from('contact_submissions').select('*').order('created_at', { ascending: false }).limit(50),
+  supabase.from('volunteer_applications').select('*').order('created_at', { ascending: false }).limit(50),
+  supabase.from('event_registrations').select('*').order('created_at', { ascending: false }).limit(50),
+]);
+---
+
+<AdminLayout title="Form Submissions | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+        Form Submissions
+      </h1>
+      <p class="text-xl text-brand-primary/70 font-body">
+        Review and manage all form submissions
+      </p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mb-6 border-b border-brand-primary/10">
+      <div class="flex gap-4">
+        <button
+          onclick="switchTab('contact')"
+          id="tab-contact"
+          class="px-6 py-3 border-b-2 border-brand-primary font-semibold text-brand-primary transition-colors"
+        >
+          Contact Forms ({contactSubmissions?.length || 0})
+        </button>
+        <button
+          onclick="switchTab('volunteers')"
+          id="tab-volunteers"
+          class="px-6 py-3 text-brand-primary/70 hover:text-brand-primary font-semibold transition-colors border-b-2 border-transparent"
+        >
+          Volunteers ({volunteerApplications?.length || 0})
+        </button>
+        <button
+          onclick="switchTab('events')"
+          id="tab-events"
+          class="px-6 py-3 text-brand-primary/70 hover:text-brand-primary font-semibold transition-colors border-b-2 border-transparent"
+        >
+          Event Registrations ({eventRegistrations?.length || 0})
+        </button>
+      </div>
+    </div>
+
+    <!-- Contact Submissions -->
+    <section id="section-contact" class="mb-12">
+      <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-display font-black text-brand-primary">Contact Form Submissions</h2>
+          <button class="px-4 py-2 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors text-sm">
+            Export CSV
+          </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr class="border-b border-brand-primary/10">
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Date</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Name</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Email</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Subject</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Status</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contactSubmissions && contactSubmissions.length > 0 ? (
+                contactSubmissions.map((submission) => (
+                  <tr class="border-b border-brand-primary/5 hover:bg-brand-light/50">
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      {new Date(submission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td class="py-4 px-4 text-sm font-semibold text-brand-primary">
+                      {submission.first_name} {submission.last_name}
+                    </td>
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      <a href={`mailto:${submission.email}`} class="text-brand-accent hover:underline">
+                        {submission.email}
+                      </a>
+                    </td>
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      {submission.subject.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </td>
+                    <td class="py-4 px-4">
+                      <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        submission.status === 'new' ? 'bg-red-100 text-red-700' :
+                        submission.status === 'read' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {submission.status}
+                      </span>
+                    </td>
+                    <td class="py-4 px-4">
+                      <button class="text-brand-accent hover:text-brand-primary font-semibold text-sm">
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colspan="6" class="py-8 text-center text-brand-primary/70">
+                    No contact submissions yet
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Volunteer Applications -->
+    <section id="section-volunteers" class="mb-12 hidden">
+      <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-display font-black text-brand-primary">Volunteer Applications</h2>
+          <button class="px-4 py-2 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors text-sm">
+            Export CSV
+          </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr class="border-b border-brand-primary/10">
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Date</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Name</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Email</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Interest</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Status</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {volunteerApplications && volunteerApplications.length > 0 ? (
+                volunteerApplications.map((application) => (
+                  <tr class="border-b border-brand-primary/5 hover:bg-brand-light/50">
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      {new Date(application.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td class="py-4 px-4 text-sm font-semibold text-brand-primary">
+                      {application.name}
+                    </td>
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      <a href={`mailto:${application.email}`} class="text-brand-accent hover:underline">
+                        {application.email}
+                      </a>
+                    </td>
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      {application.interest?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || application.interest_type?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || '-'}
+                    </td>
+                    <td class="py-4 px-4">
+                      <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        application.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                        application.status === 'reviewed' ? 'bg-yellow-100 text-yellow-700' :
+                        application.status === 'approved' ? 'bg-green-100 text-green-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {application.status}
+                      </span>
+                    </td>
+                    <td class="py-4 px-4">
+                      <button class="text-brand-accent hover:text-brand-primary font-semibold text-sm">
+                        Review
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colspan="6" class="py-8 text-center text-brand-primary/70">
+                    No volunteer applications yet
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Event Registrations -->
+    <section id="section-events" class="hidden">
+      <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-display font-black text-brand-primary">Event Registrations</h2>
+          <button class="px-4 py-2 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors text-sm">
+            Export CSV
+          </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr class="border-b border-brand-primary/10">
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Date</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Child</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Age</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Parent</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Sport</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Event Date</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Status</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-brand-primary uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {eventRegistrations && eventRegistrations.length > 0 ? (
+                eventRegistrations.map((registration) => (
+                  <tr class="border-b border-brand-primary/5 hover:bg-brand-light/50">
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      {new Date(registration.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </td>
+                    <td class="py-4 px-4 text-sm font-semibold text-brand-primary">
+                      {registration.child_first_name}
+                    </td>
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      {registration.child_age}
+                    </td>
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      <div>{registration.parent_name}</div>
+                      <div class="text-xs text-brand-primary/60">
+                        <a href={`mailto:${registration.parent_email}`} class="text-brand-accent hover:underline">
+                          {registration.parent_email}
+                        </a>
+                      </div>
+                    </td>
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      <span class="px-2 py-1 bg-brand-accent/20 text-brand-accent rounded-full text-xs font-semibold">
+                        {registration.sport}
+                      </span>
+                    </td>
+                    <td class="py-4 px-4 text-sm text-brand-primary/80">
+                      {new Date(registration.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td class="py-4 px-4">
+                      <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        registration.status === 'registered' ? 'bg-blue-100 text-blue-700' :
+                        registration.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                        registration.status === 'attended' ? 'bg-green-100 text-green-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {registration.status}
+                      </span>
+                    </td>
+                    <td class="py-4 px-4">
+                      <button class="text-brand-accent hover:text-brand-primary font-semibold text-sm">
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colspan="8" class="py-8 text-center text-brand-primary/70">
+                    No event registrations yet
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</AdminLayout>
+
+<script>
+  function switchTab(tabName: string) {
+    // Hide all sections
+    document.getElementById('section-contact')?.classList.add('hidden');
+    document.getElementById('section-volunteers')?.classList.add('hidden');
+    document.getElementById('section-events')?.classList.add('hidden');
+
+    // Remove active styling from all tabs
+    document.getElementById('tab-contact')?.classList.remove('border-brand-primary', 'text-brand-primary');
+    document.getElementById('tab-contact')?.classList.add('border-transparent', 'text-brand-primary/70');
+    document.getElementById('tab-volunteers')?.classList.remove('border-brand-primary', 'text-brand-primary');
+    document.getElementById('tab-volunteers')?.classList.add('border-transparent', 'text-brand-primary/70');
+    document.getElementById('tab-events')?.classList.remove('border-brand-primary', 'text-brand-primary');
+    document.getElementById('tab-events')?.classList.add('border-transparent', 'text-brand-primary/70');
+
+    // Show selected section
+    const section = document.getElementById(`section-${tabName}`);
+    if (section) {
+      section.classList.remove('hidden');
+    }
+
+    // Add active styling to selected tab
+    const tab = document.getElementById(`tab-${tabName}`);
+    if (tab) {
+      tab.classList.remove('border-transparent', 'text-brand-primary/70');
+      tab.classList.add('border-brand-primary', 'text-brand-primary');
+    }
+
+    // Update URL hash without scrolling
+    window.history.replaceState(null, '', `#${tabName}`);
+  }
+
+  // Handle initial hash on page load
+  window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && ['contact', 'volunteers', 'events'].includes(hash)) {
+      switchTab(hash);
+    }
+  });
+
+  // Handle browser back/forward buttons
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && ['contact', 'volunteers', 'events'].includes(hash)) {
+      switchTab(hash);
+    }
+  });
+
+  (window as any).switchTab = switchTab;
+</script>

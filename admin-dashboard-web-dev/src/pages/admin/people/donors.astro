@@ -1,0 +1,306 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Get filter from URL
+const url = new URL(Astro.request.url);
+const statusFilter = url.searchParams.get('status') || '';
+
+// Pipeline stages with definitions
+const pipelineStages = [
+  { 
+    status: 'lead', 
+    label: 'Leads', 
+    description: 'Potential donors who haven\'t given yet',
+    color: 'bg-gray-100 text-gray-700',
+    borderColor: 'border-gray-300'
+  },
+  { 
+    status: 'one-time', 
+    label: 'One-Time', 
+    description: 'Made a single donation',
+    color: 'bg-blue-100 text-blue-700',
+    borderColor: 'border-blue-300'
+  },
+  { 
+    status: 'recurring', 
+    label: 'Recurring', 
+    description: 'Active monthly/annual donors',
+    color: 'bg-green-100 text-green-700',
+    borderColor: 'border-green-300'
+  },
+  { 
+    status: 'lapsed', 
+    label: 'Lapsed', 
+    description: 'No donation in 12+ months',
+    color: 'bg-red-100 text-red-700',
+    borderColor: 'border-red-300'
+  },
+  { 
+    status: 'vip', 
+    label: 'VIP', 
+    description: '$1,000+ lifetime giving',
+    color: 'bg-purple-100 text-purple-700',
+    borderColor: 'border-purple-300'
+  },
+];
+
+// Fetch all donors with their people data
+let query = supabase
+  .from('donor_details')
+  .select(`
+    *,
+    people!inner (
+      id,
+      email,
+      name,
+      phone,
+      organization,
+      tags,
+      last_activity_at
+    )
+  `);
+
+if (statusFilter) {
+  query = query.eq('status', statusFilter);
+}
+
+const { data: donors, error } = await query
+  .order('lifetime_total', { ascending: false });
+
+// Calculate pipeline counts
+const pipelineCounts: Record<string, number> = {};
+const { data: allDonors } = await supabase
+  .from('donor_details')
+  .select('status');
+
+allDonors?.forEach(d => {
+  pipelineCounts[d.status] = (pipelineCounts[d.status] || 0) + 1;
+});
+
+// Calculate totals
+const totalLifetime = donors?.reduce((sum, d) => sum + parseFloat(d.lifetime_total || 0), 0) || 0;
+const totalYTD = donors?.reduce((sum, d) => sum + parseFloat(d.ytd_total || 0), 0) || 0;
+const recurringCount = donors?.filter(d => d.is_recurring).length || 0;
+---
+
+<AdminLayout title="Donors | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+        Donor Pipeline
+      </h1>
+      <p class="text-xl text-brand-primary/70 font-body">
+        Track and manage your donor relationships
+      </p>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-2xl p-5 shadow-md border border-brand-primary/10">
+        <div class="text-3xl font-display font-black text-brand-primary">
+          {donors?.length || 0}
+        </div>
+        <div class="text-sm text-brand-primary/70">
+          {statusFilter ? `${pipelineStages.find(s => s.status === statusFilter)?.label || 'Filtered'} Donors` : 'Total Donors'}
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-md border border-brand-primary/10">
+        <div class="text-3xl font-display font-black text-green-600">
+          ${totalLifetime.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+        </div>
+        <div class="text-sm text-brand-primary/70">Lifetime Giving</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-md border border-brand-primary/10">
+        <div class="text-3xl font-display font-black text-brand-accent">
+          ${totalYTD.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+        </div>
+        <div class="text-sm text-brand-primary/70">Year to Date</div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-md border border-brand-primary/10">
+        <div class="text-3xl font-display font-black text-purple-600">
+          {recurringCount}
+        </div>
+        <div class="text-sm text-brand-primary/70">Recurring Donors</div>
+      </div>
+    </div>
+
+    <!-- Pipeline Stages (Kanban-style headers) -->
+    <div class="bg-white rounded-3xl p-6 shadow-lg border border-brand-primary/10 mb-6">
+      <div class="flex flex-wrap gap-3">
+        <a 
+          href="/admin/people/donors"
+          class={`px-4 py-2 rounded-full font-semibold text-sm transition-colors ${
+            !statusFilter 
+              ? 'bg-brand-primary text-white' 
+              : 'bg-brand-light text-brand-primary hover:bg-brand-primary/10'
+          }`}
+        >
+          All Donors ({allDonors?.length || 0})
+        </a>
+        {pipelineStages.map(stage => (
+          <a 
+            href={`/admin/people/donors?status=${stage.status}`}
+            class={`px-4 py-2 rounded-full font-semibold text-sm transition-colors ${
+              statusFilter === stage.status 
+                ? stage.color + ' ring-2 ring-offset-2 ' + stage.borderColor.replace('border-', 'ring-')
+                : 'bg-brand-light text-brand-primary hover:bg-brand-primary/10'
+            }`}
+            title={stage.description}
+          >
+            {stage.label} ({pipelineCounts[stage.status] || 0})
+          </a>
+        ))}
+      </div>
+      {statusFilter && (
+        <div class="mt-4 text-sm text-brand-primary/60">
+          {pipelineStages.find(s => s.status === statusFilter)?.description}
+        </div>
+      )}
+    </div>
+
+    <!-- Donors Table -->
+    <div class="bg-white rounded-3xl shadow-lg border border-brand-primary/10 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="border-b border-brand-primary/10 bg-brand-light/30">
+              <th class="text-left py-4 px-6 text-sm font-semibold text-brand-primary uppercase">Donor</th>
+              <th class="text-left py-4 px-6 text-sm font-semibold text-brand-primary uppercase">Status</th>
+              <th class="text-right py-4 px-6 text-sm font-semibold text-brand-primary uppercase">Lifetime</th>
+              <th class="text-right py-4 px-6 text-sm font-semibold text-brand-primary uppercase">YTD</th>
+              <th class="text-center py-4 px-6 text-sm font-semibold text-brand-primary uppercase">Donations</th>
+              <th class="text-center py-4 px-6 text-sm font-semibold text-brand-primary uppercase">Recurring</th>
+              <th class="text-left py-4 px-6 text-sm font-semibold text-brand-primary uppercase">Last Gift</th>
+              <th class="text-left py-4 px-6 text-sm font-semibold text-brand-primary uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {donors && donors.length > 0 ? (
+              donors.map((donor) => {
+                const person = donor.people;
+                const stageConfig = pipelineStages.find(s => s.status === donor.status);
+                return (
+                  <tr class="border-b border-brand-primary/5 hover:bg-brand-light/30 transition-colors">
+                    <td class="py-4 px-6">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold">
+                          {person?.name?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <div class="font-semibold text-brand-primary">{person?.name || 'Unknown'}</div>
+                          <a href={`mailto:${person?.email}`} class="text-xs text-brand-accent hover:underline">
+                            {person?.email}
+                          </a>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="py-4 px-6">
+                      <span class={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${stageConfig?.color || 'bg-gray-100 text-gray-700'}`}>
+                        {stageConfig?.label || donor.status}
+                      </span>
+                    </td>
+                    <td class="py-4 px-6 text-right">
+                      <div class="font-bold text-brand-primary">
+                        ${parseFloat(donor.lifetime_total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </div>
+                    </td>
+                    <td class="py-4 px-6 text-right">
+                      <div class="font-semibold text-brand-accent">
+                        ${parseFloat(donor.ytd_total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </div>
+                    </td>
+                    <td class="py-4 px-6 text-center text-brand-primary/80">
+                      {donor.donation_count || 0}
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                      {donor.is_recurring ? (
+                        <span class="inline-block w-6 h-6 bg-green-100 text-green-600 rounded-full text-center leading-6">✓</span>
+                      ) : (
+                        <span class="inline-block w-6 h-6 text-brand-primary/30">—</span>
+                      )}
+                    </td>
+                    <td class="py-4 px-6 text-sm text-brand-primary/70">
+                      {donor.last_gift_at ? (
+                        new Date(donor.last_gift_at).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })
+                      ) : (
+                        <span class="text-brand-primary/40">Never</span>
+                      )}
+                    </td>
+                    <td class="py-4 px-6">
+                      <a 
+                        href={`/admin/people/${person?.id}`}
+                        class="text-brand-accent hover:text-brand-primary font-semibold text-sm"
+                      >
+                        View →
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colspan="8" class="py-12 text-center text-brand-primary/70">
+                  {error ? (
+                    <div>
+                      <p class="text-red-600 mb-2">Error loading donors</p>
+                      <p class="text-sm">{error.message}</p>
+                      <p class="text-xs mt-4 text-brand-primary/50">
+                        Make sure you've run the database migrations (004 and 005).
+                      </p>
+                    </div>
+                  ) : statusFilter ? (
+                    <div>
+                      <p>No donors in the "{pipelineStages.find(s => s.status === statusFilter)?.label}" stage.</p>
+                      <a href="/admin/people/donors" class="text-brand-accent hover:underline text-sm mt-2 inline-block">
+                        View all donors
+                      </a>
+                    </div>
+                  ) : (
+                    <div>
+                      <p>No donors yet.</p>
+                      <p class="text-sm mt-2">Donors will appear here after they make their first donation.</p>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pipeline Legend -->
+    <div class="mt-6 bg-brand-light/50 rounded-2xl p-4">
+      <h3 class="text-sm font-semibold text-brand-primary mb-3">Pipeline Stage Definitions</h3>
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
+        {pipelineStages.map(stage => (
+          <div class="flex items-start gap-2">
+            <span class={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${stage.color}`}>
+              {stage.label}
+            </span>
+            <span class="text-brand-primary/60 text-xs">{stage.description}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</AdminLayout>

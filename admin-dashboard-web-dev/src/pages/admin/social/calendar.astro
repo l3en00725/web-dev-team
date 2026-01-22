@@ -1,0 +1,41 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import SocialCalendar from '../../../components/admin/SocialCalendar';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+---
+
+<AdminLayout title="Content Calendar | Social Publishing" userId={userId} email={email}>
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-brand-dark">Content Calendar</h1>
+        <p class="text-brand-primary/70 mt-1">Schedule and manage your social media posts</p>
+      </div>
+      <a 
+        href="/admin/social/compose-new" 
+        class="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-xl font-semibold hover:bg-brand-dark transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        New Post
+      </a>
+    </div>
+    
+    <SocialCalendar client:load />
+  </div>
+</AdminLayout>
+
+<style>
+  /* Ensure the calendar has enough space */
+  :global(.admin-content) {
+    min-height: calc(100vh - 64px);
+  }
+</style>

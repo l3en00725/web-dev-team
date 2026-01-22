@@ -1,0 +1,122 @@
+/**
+ * Clerk Authentication Middleware
+ * 
+ * Handles route protection using Clerk authentication.
+ * - Public routes: accessible to everyone
+ * - Portal routes: require signed-in user
+ * - Admin routes: require signed-in user with role === 'admin' in publicMetadata
+ * 
+ * Role Hierarchy:
+ * - super_admin: Full access (only ben@bluehomesgroup.com is permanent)
+ * - admin: Can manage content, events, emails
+ * - content_manager: Can create/edit content only
+ * 
+ * Role checking uses publicMetadata.role (set during invitation acceptance)
+ */
+
+import { clerkMiddleware, createRouteMatcher } from '@clerk/astro/server';
+
+// The only hardcoded super admin - always has access
+const PERMANENT_SUPER_ADMIN = 'ben@bluehomesgroup.com';
+
+// Define route matchers
+const isAdminRoute = createRouteMatcher(['/admin(.*)']);
+const isPortalRoute = createRouteMatcher(['/portal(.*)']);
+
+// Public routes that don't require authentication
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/about',
+  '/programs',
+  '/impact',
+  '/impact-stories(.*)',
+  '/donate(.*)',
+  '/contact',
+  '/privacy',
+  '/terms',
+  '/get-involved',
+  '/partnerships(.*)',
+  '/apply-funding',
+  '/donors',
+  '/unauthorized',
+  // Auth pages (Clerk will handle these)
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/sign-out',
+  '/auth(.*)',
+  // Webhooks and public API endpoints
+  '/api/stripe-webhook',
+  '/api/clerk-webhook',
+  '/api/submit-contact-form',
+  '/api/submit-volunteer-form',
+  '/api/submit-partnership',
+  '/api/register-event',
+  '/api/create-checkout-session',
+  '/api/og(.*)',
+]);
+
+export const onRequest = clerkMiddleware(async (auth, context) => {
+  const { userId } = auth();
+  const pathname = new URL(context.request.url).pathname;
+
+  // Skip for static assets
+  if (pathname.startsWith('/_') || pathname.includes('.')) {
+    return;
+  }
+
+  // Public routes - allow all
+  if (isPublicRoute(context.request)) {
+    return;
+  }
+
+  // Admin routes - require authentication + admin role
+  if (isAdminRoute(context.request)) {
+    if (!userId) {
+      console.log('Middleware: Admin route, no user - redirecting to sign-in');
+      return auth().redirectToSignIn({ returnBackUrl: context.request.url });
+    }
+
+    // Fetch user to check publicMetadata.role
+    const user = await context.locals.currentUser();
+    const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+    const role = user?.publicMetadata?.role as string | undefined;
+    const adminRole = user?.publicMetadata?.adminRole as string | undefined;
+    
+    console.log('Middleware: Admin route check -', { email, role, adminRole });
+
+    // Check admin access:
+    // 1. Has role='admin' in publicMetadata (from invitation)
+    // 2. Is the permanent super admin
+    const isPermanentSuperAdmin = email === PERMANENT_SUPER_ADMIN;
+    const isAdmin = role === 'admin' || isPermanentSuperAdmin;
+
+    if (!isAdmin) {
+      console.log('Middleware: User is not admin, redirecting to /unauthorized');
+      return Response.redirect(new URL('/unauthorized', context.request.url));
+    }
+
+    console.log('Middleware: Admin access granted for', email, 'with role', adminRole || 'admin');
+    return;
+  }
+
+  // Portal routes - require any authenticated user
+  if (isPortalRoute(context.request)) {
+    if (!userId) {
+      console.log('Middleware: Portal route, no user - redirecting to sign-in');
+      return auth().redirectToSignIn({ returnBackUrl: context.request.url });
+    }
+    
+    console.log('Middleware: Portal access granted for userId:', userId);
+    return;
+  }
+
+  // API routes that require authentication (not in public list)
+  if (pathname.startsWith('/api/')) {
+    // Most admin API routes require auth - let the route handler check
+    // This allows the route to return proper 401 JSON response
+    return;
+  }
+
+  // All other routes - allow (they may have their own auth checks)
+  return;
+});

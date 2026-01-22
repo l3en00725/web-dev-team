@@ -1,0 +1,16 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import SocialAnalytics from '../../../components/admin/SocialAnalytics';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+---
+
+<AdminLayout title="Social Analytics | Admin Dashboard" userId={userId} email={email}>
+  <SocialAnalytics client:load />
+</AdminLayout>

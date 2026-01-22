@@ -26,7 +26,11 @@ Verifies build readiness, sets up admin backend, connects publishing channels, a
 - Runs pre-launch checklist
 
 ### Backend Setup
-- Sets up admin dashboard
+- **Copies admin dashboard template** from Hub repo (`admin-dashboard-web-dev/`)
+- **Installs dependencies** (see template `docs/DEPENDENCIES.md`)
+- **Sets up database schema** (runs `schema.sql` in Supabase)
+- **Configures Clerk authentication** (see `skills/clerk-authentication/SKILL.md`)
+- **Customizes branding** (logo, colors, navigation)
 - Connects Google Analytics
 - Connects Search Console
 - Connects Bing Webmaster Tools
@@ -151,17 +155,35 @@ Admin/QA Agent is the **final gate** before deployment.
 
 ---
 
-## Admin Dashboard Sections
+## Admin Dashboard Implementation
 
-1. **Analytics** — GA4, Search Console, Bing metrics
-2. **Performance** — PageSpeed scores, Core Web Vitals
-3. **Forms & Leads** — Submissions, webhook URLs
-4. **Content Creation** — AI-assisted editor
-5. **Author Management** — E-E-A-T bios
-6. **Content Refresh** — Age tracking, update flags
-7. **Sitemap Submission** — Auto-submit on deploy
-8. **Social Publishing** — LinkedIn, Medium
-9. **Pre-Launch Checklist** — Final verification
+**Template Location:** Hub repo `/admin-dashboard-web-dev/`
+
+**Implementation Process:**
+1. Copy template files to project (pages, components, API routes, utils)
+2. Install dependencies (see template `docs/DEPENDENCIES.md`)
+3. Run database schema (`schema.sql` in Supabase)
+4. Configure Clerk authentication
+5. Update super admin email in middleware/utils/API routes
+6. Customize branding (logo, colors, navigation)
+7. Set environment variables (local + production)
+
+**Full Setup Guide:** `admin-dashboard-web-dev/docs/SETUP-CHECKLIST.md`
+
+**Dashboard Sections (All Pre-Implemented):**
+
+1. **Dashboard** — Overview with stats and metrics
+2. **Users** — User management with role-based access
+3. **People/Contacts** — Donor, volunteer, parent management
+4. **Content** — Blog post creation and management
+5. **Events** — Event creation and management
+6. **Forms** — Form submission tracking
+7. **Email** — Email campaign management (Resend integration)
+8. **Social** — Social media scheduler (LinkedIn, Facebook, Instagram, X)
+9. **Settings** — Site-wide settings management
+10. **Analytics** — GA4, Search Console, Bing metrics (when connected)
+11. **Performance** — PageSpeed scores, Core Web Vitals
+12. **Pre-Launch Checklist** — Final verification
 
 ---
 

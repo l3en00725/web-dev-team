@@ -1,0 +1,79 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+import SocialComposer from '../../../components/admin/social/SocialComposer';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Get user's role
+const { data: adminUser } = await supabase
+  .from('admin_users')
+  .select('role')
+  .eq('user_id', userId)
+  .single();
+
+const userRole = adminUser?.role || 'viewer';
+
+// Get accessible social accounts
+const { data: accounts } = await supabase
+  .from('social_connections')
+  .select('*')
+  .eq('active', true)
+  .neq('platform', 'pending')
+  .or(`user_id.eq.${userId},ownership.eq.org`)
+  .order('ownership', { ascending: false })
+  .order('connected_at', { ascending: false });
+
+// Derive account status from connected accounts
+const accountStatus = {
+  linkedin: (accounts || []).some((a: any) => a.platform === 'linkedin'),
+  x: (accounts || []).some((a: any) => a.platform === 'x' || a.platform === 'twitter'),
+  facebook: (accounts || []).some((a: any) => a.platform === 'facebook'),
+  instagram: (accounts || []).some((a: any) => a.platform === 'instagram'),
+};
+
+// Check if Upload-Post is configured
+const uploadPostConfigured = !!import.meta.env.UPLOAD_POST_API_KEY;
+---
+
+<AdminLayout title="Compose Post | Social Publishing" userId={userId} email={email}>
+  <div class="h-full pb-20 lg:pb-0">
+    {!uploadPostConfigured && (
+      <div class="mb-4 p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 text-sm sm:text-base">
+        <strong>Warning:</strong> Upload-Post API key not configured. Add <code class="text-xs sm:text-sm">UPLOAD_POST_API_KEY</code> to your environment variables.
+      </div>
+    )}
+    
+    <SocialComposer 
+      client:load 
+      connectedAccounts={accounts || []}
+      accountStatus={accountStatus}
+    />
+  </div>
+</AdminLayout>
+
+<style>
+  /* Ensure full height for the composer */
+  :global(.admin-content) {
+    height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+  
+  /* Mobile optimizations for social composer */
+  @media (max-width: 1024px) {
+    :global(.admin-content) {
+      padding-bottom: 80px; /* Space for FAB */
+    }
+  }
+</style>

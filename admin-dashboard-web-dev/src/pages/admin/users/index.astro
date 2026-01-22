@@ -1,0 +1,340 @@
+---
+import AdminLayout from '../../../components/admin/AdminLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+
+const PERMANENT_SUPER_ADMIN = 'ben@bluehomesgroup.com';
+
+// Auth handled by Clerk middleware
+const { userId } = Astro.locals.auth();
+if (!userId) {
+  return Astro.redirect('/sign-in', 302);
+}
+
+const user = await Astro.locals.currentUser();
+const email = user?.primaryEmailAddress?.emailAddress;
+const adminRole = user?.publicMetadata?.adminRole as string | undefined;
+
+// Check if current user is super admin
+const normalizedEmail = email?.toLowerCase();
+const isPermanentSuperAdmin = normalizedEmail === PERMANENT_SUPER_ADMIN;
+const isSuperAdmin = isPermanentSuperAdmin || adminRole === 'super_admin';
+
+const supabase = createClient(
+  import.meta.env.SUPABASE_URL,
+  import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.SUPABASE_SERVICE_KEY
+);
+
+// Fetch all admin users
+const { data: adminUsers } = await supabase
+  .from('admin_users')
+  .select('*')
+  .order('created_at', { ascending: false });
+---
+
+<AdminLayout title="Admin Users | Admin Dashboard" userId={userId} email={email}>
+  <div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-display font-black text-brand-primary mb-2">
+          Admin Users
+        </h1>
+        <p class="text-base sm:text-lg md:text-xl text-brand-primary/70 font-body">
+          Manage admin user access and permissions
+        </p>
+      </div>
+      <button
+        id="add-user-btn"
+        class="px-4 sm:px-6 py-2 sm:py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark active:bg-brand-dark transition-colors touch-manipulation min-h-[44px] text-sm sm:text-base"
+      >
+        <span class="hidden sm:inline">+ Add User</span>
+        <span class="sm:hidden">+ Add</span>
+      </button>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 safe-area-inset">
+      <div class="bg-white rounded-3xl p-4 sm:p-6 md:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl mx-4">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 class="text-xl sm:text-2xl font-display font-black text-brand-primary">Add Admin User</h2>
+          <button
+            onclick="document.getElementById('add-user-modal').classList.add('hidden')"
+            class="text-brand-primary/60 hover:text-brand-primary min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-brand-light/50 transition-colors touch-manipulation"
+            aria-label="Close modal"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form id="add-user-form" class="space-y-4">
+          <div>
+            <label for="user-email" class="block text-brand-primary font-semibold mb-2">
+              Email Address <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              id="user-email"
+              name="email"
+              required
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              placeholder="user@example.com"
+            />
+            <p class="text-xs text-brand-primary/60 mt-1">
+              User will receive an email invitation to create their account
+            </p>
+          </div>
+          <div>
+            <label for="user-name" class="block text-brand-primary font-semibold mb-2">
+              Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="user-name"
+              name="name"
+              required
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              placeholder="Full name"
+            />
+          </div>
+          <div>
+            <label for="user-role" class="block text-brand-primary font-semibold mb-2">
+              Role <span class="text-red-500">*</span>
+            </label>
+            <select
+              id="user-role"
+              name="role"
+              required
+              class="w-full px-4 py-3 rounded-xl border border-brand-primary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            >
+              <option value="content_manager">Content Manager</option>
+              <option value="admin">Admin</option>
+              {isSuperAdmin && (
+                <option value="super_admin">Super Admin (Full Access)</option>
+              )}
+            </select>
+            <p class="text-xs text-brand-primary/60 mt-1">
+              {isSuperAdmin 
+                ? 'As a super admin, you can create any role including other super admins.'
+                : 'You can invite content managers and admins. Only super admins can create other super admins.'}
+            </p>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
+            <button
+              type="button"
+              onclick="document.getElementById('add-user-modal').classList.add('hidden')"
+              class="flex-1 px-6 py-3 border-2 border-brand-primary text-brand-primary rounded-full font-bold hover:bg-brand-light active:bg-brand-light transition-colors touch-manipulation min-h-[44px]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="flex-1 px-6 py-3 bg-brand-primary text-white rounded-full font-bold hover:bg-brand-dark active:bg-brand-dark transition-colors touch-manipulation min-h-[44px]"
+            >
+              Send Invitation
+            </button>
+          </div>
+          <div id="add-user-message" class="hidden mt-4 p-4 rounded-xl text-center"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Role Legend -->
+    <div class="mb-6 p-4 bg-brand-light rounded-2xl">
+      <h3 class="font-semibold text-brand-primary mb-2">Role Permissions</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div>
+          <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 mb-1">Super Admin</span>
+          <p class="text-brand-primary/70">Full access. Can manage all users, settings, and content.</p>
+        </div>
+        <div>
+          <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 mb-1">Admin</span>
+          <p class="text-brand-primary/70">Can manage content, events, and emails. Cannot add super admins.</p>
+        </div>
+        <div>
+          <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 mb-1">Content Manager</span>
+          <p class="text-brand-primary/70">Can create and edit content only.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-lg border border-brand-primary/10">
+      <div class="overflow-x-auto -mx-4 sm:mx-0">
+        <div class="inline-block min-w-full align-middle">
+          <div class="overflow-hidden">
+            <table class="min-w-full divide-y divide-brand-primary/10">
+          <thead class="bg-brand-light/30">
+            <tr>
+              <th class="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-brand-primary uppercase whitespace-nowrap">Name</th>
+              <th class="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-brand-primary uppercase whitespace-nowrap hidden sm:table-cell">Email</th>
+              <th class="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-brand-primary uppercase whitespace-nowrap">Role</th>
+              <th class="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-brand-primary uppercase whitespace-nowrap hidden md:table-cell">Status</th>
+              <th class="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-brand-primary uppercase whitespace-nowrap hidden lg:table-cell">Created</th>
+              <th class="text-left py-3 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-brand-primary uppercase whitespace-nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {adminUsers && adminUsers.length > 0 ? (
+              adminUsers.map((adminUser) => (
+                <tr class="border-b border-brand-primary/5 hover:bg-brand-light/50">
+                  <td class="py-3 px-3 sm:px-4 font-semibold text-brand-primary text-sm sm:text-base">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span>{adminUser.name}</span>
+                      {adminUser.email === PERMANENT_SUPER_ADMIN && (
+                        <span class="text-xs text-purple-600">(Owner)</span>
+                      )}
+                    </div>
+                    {/* Show email on mobile in this cell */}
+                    <div class="text-xs text-brand-primary/60 sm:hidden mt-1 truncate">
+                      {adminUser.email}
+                    </div>
+                  </td>
+                  <td class="py-3 px-3 sm:px-4 text-xs sm:text-sm text-brand-primary/80 hidden sm:table-cell">
+                    {adminUser.email}
+                  </td>
+                  <td class="py-3 px-3 sm:px-4">
+                    <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      adminUser.role === 'super_admin' ? 'bg-purple-100 text-purple-700' :
+                      adminUser.role === 'admin' ? 'bg-green-100 text-green-700' :
+                      adminUser.role === 'content_manager' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {adminUser.role?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Unknown'}
+                    </span>
+                  </td>
+                  <td class="py-3 px-3 sm:px-4 hidden md:table-cell">
+                    <span class={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      adminUser.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {adminUser.active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td class="py-3 px-3 sm:px-4 text-xs sm:text-sm text-brand-primary/60 hidden lg:table-cell">
+                    {new Date(adminUser.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </td>
+                  <td class="py-3 px-3 sm:px-4">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                      {/* Don't allow editing or deactivating the permanent super admin */}
+                      {adminUser.email !== PERMANENT_SUPER_ADMIN && (
+                        <>
+                          {adminUser.active && isSuperAdmin && (
+                            <button
+                              onclick={`deactivateUser('${adminUser.id}')`}
+                              class="text-red-600 hover:text-red-700 font-semibold text-xs sm:text-sm touch-manipulation min-h-[32px] flex items-center"
+                            >
+                              Deactivate
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {adminUser.email === PERMANENT_SUPER_ADMIN && (
+                        <span class="text-xs text-brand-primary/40">Protected</span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colspan="6" class="py-8 text-center text-brand-primary/70">
+                  No admin users yet. Click "Add User" to get started.
+                </td>
+              </tr>
+            )}
+          </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  // Add User Modal
+  const addUserBtn = document.getElementById('add-user-btn');
+  const addUserModal = document.getElementById('add-user-modal');
+  const addUserForm = document.getElementById('add-user-form') as HTMLFormElement | null;
+  const addUserMessage = document.getElementById('add-user-message');
+
+  if (addUserBtn && addUserModal) {
+    addUserBtn.addEventListener('click', () => {
+      addUserModal.classList.remove('hidden');
+    });
+  }
+
+  // Add User Form Submission
+  if (addUserForm) {
+    addUserForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(addUserForm);
+      const data = {
+        email: formData.get('email'),
+        name: formData.get('name'),
+        role: formData.get('role'),
+      };
+
+      const submitBtn = addUserForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending invitation...';
+
+      try {
+        const response = await fetch('/api/admin/add-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        
+        if (addUserMessage) {
+          if (response.ok) {
+            addUserMessage.className = 'mt-4 p-4 rounded-xl text-center bg-green-50 text-green-700 border border-green-200';
+            addUserMessage.innerHTML = `<strong>✓ Invitation sent!</strong><br><span class="text-sm">${result.message || 'User will receive an email to set up their account.'}</span>`;
+            addUserMessage.classList.remove('hidden');
+            setTimeout(() => {
+              window.location.reload();
+            }, 2500);
+          } else {
+            addUserMessage.className = 'mt-4 p-4 rounded-xl text-center bg-red-50 text-red-700 border border-red-200';
+            addUserMessage.textContent = result.error || 'Failed to add user';
+            addUserMessage.classList.remove('hidden');
+          }
+        }
+      } catch (error: any) {
+        if (addUserMessage) {
+          addUserMessage.className = 'mt-4 p-4 rounded-xl text-center bg-red-50 text-red-700 border border-red-200';
+          addUserMessage.textContent = 'Network error: ' + error.message;
+          addUserMessage.classList.remove('hidden');
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Invitation';
+      }
+    });
+  }
+
+  function deactivateUser(userId: string) {
+    if (confirm('Are you sure you want to deactivate this user? They will no longer be able to access the admin dashboard.')) {
+      fetch('/api/admin/deactivate-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            window.location.reload();
+          } else {
+            alert('Error: ' + data.error);
+          }
+        });
+    }
+  }
+
+  (window as any).deactivateUser = deactivateUser;
+</script>

@@ -14,6 +14,34 @@ Single interface for site owners to manage, monitor, and publish content. Provid
 
 ---
 
+## ⚠️ CRITICAL: Template-Based Implementation
+
+**This skill uses a standardized admin dashboard template located in the Hub repository.**
+
+**Template Location:** `/admin-dashboard-web-dev/` (in the `web-dev-team` Hub repo)
+
+**What's Included:**
+- ✅ 20 Admin Pages (dashboard, content, donors, email, events, forms, people, settings, social, users)
+- ✅ 28 API Endpoints (full CRUD + social media management)
+- ✅ 10 React/Astro Components (layouts, navigation, social composer)
+- ✅ Complete Clerk authentication integration
+- ✅ Supabase database schema (`schema.sql`)
+- ✅ Full documentation (setup checklist, dependencies, API reference)
+
+**Implementation Process:**
+1. **Copy template files** from Hub repo to project
+2. **Install dependencies** (see `admin-dashboard-web-dev/docs/DEPENDENCIES.md`)
+3. **Set up database** (run `schema.sql` in Supabase)
+4. **Configure authentication** (Clerk setup - see `skills/clerk-authentication/SKILL.md`)
+5. **Customize branding** (logo, colors, navigation)
+6. **Set environment variables** (see `.env.example` in template)
+
+**Full Setup Guide:** See `admin-dashboard-web-dev/docs/SETUP-CHECKLIST.md` (60-90 minute setup)
+
+**Template Reference:** `admin-dashboard-web-dev/README.md`
+
+---
+
 ## Trigger
 
 After Builder and Content Agents complete their work, before deployment.
@@ -22,18 +50,90 @@ After Builder and Content Agents complete their work, before deployment.
 
 ## Required Environment Variables
 
+**See `admin-dashboard-web-dev/.env.example` for complete list.**
+
+**Core (Required):**
 ```
-GA_MEASUREMENT_ID=
+PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+CLERK_WEBHOOK_SECRET=
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+**Optional (Based on features used):**
+```
+GA_MEASUREMENT_ID=
 ANTHROPIC_API_KEY=
 KEYWORDS_API_KEY=
 GOOGLE_SEARCH_CONSOLE_API_KEY=
+RESEND_API_KEY=          # For email campaigns
+OPENAI_API_KEY=          # For AI content generation
+UPLOAD_POST_API_KEY=     # For social media posting
 ```
 
 ---
 
+## Implementation Steps
+
+### Step 1: Copy Template Files
+
+From the Hub repo (`web-dev-team/admin-dashboard-web-dev/`), copy to your project:
+
+```bash
+# Admin pages
+cp -r admin-dashboard-web-dev/src/pages/admin your-project/src/pages/
+
+# Admin API endpoints
+cp -r admin-dashboard-web-dev/src/pages/api/* your-project/src/pages/api/
+
+# Admin components
+cp -r admin-dashboard-web-dev/src/components/admin your-project/src/components/
+
+# Utilities
+cp admin-dashboard-web-dev/src/utils/clerk.ts your-project/src/utils/
+
+# Middleware (merge with existing if needed)
+cp admin-dashboard-web-dev/src/middleware.ts.example your-project/src/middleware.ts
+```
+
+### Step 2: Install Dependencies
+
+See `admin-dashboard-web-dev/docs/DEPENDENCIES.md` for complete list.
+
+**Core dependencies:**
+```bash
+npm install @clerk/astro@^2.11.0 @supabase/supabase-js@^2.39.0 react@19.2.3 react-dom@19.2.3
+npm install @radix-ui/react-dialog@1.1.15 @radix-ui/react-tabs@1.1.13 lucide-react@0.562.0
+```
+
+### Step 3: Set Up Database
+
+Run `admin-dashboard-web-dev/schema.sql` in your Supabase SQL Editor.
+
+### Step 4: Configure Authentication
+
+Follow `skills/clerk-authentication/SKILL.md` for complete Clerk setup.
+
+### Step 5: Update Super Admin Email
+
+Replace `'ben@bluehomesgroup.com'` with your email in:
+- `src/middleware.ts`
+- `src/utils/clerk.ts`
+- `src/pages/api/add-user.ts`
+
+### Step 6: Customize Branding
+
+- Logo: Update in `src/components/admin/AdminLayout.astro`
+- Colors: Edit `tailwind.config.mjs` brand colors
+- Navigation: Modify `src/components/admin/AdminSidebar.astro`
+
+---
+
 ## Dashboard Sections
+
+**All sections are pre-implemented in the template. Customize as needed for your project.**
 
 ### 1. Analytics
 
@@ -433,12 +533,17 @@ const preLaunchChecklist = {
 
 Admin Dashboard Skill is complete when:
 
-- [ ] All 9 sections implemented
+- [ ] Template files copied from Hub repo to project
+- [ ] All dependencies installed (see `DEPENDENCIES.md`)
+- [ ] Database schema applied (`schema.sql` run in Supabase)
+- [ ] Clerk authentication configured and working
+- [ ] Super admin email updated in all required files
+- [ ] Branding customized (logo, colors, navigation)
+- [ ] All environment variables set (local + production)
+- [ ] Admin dashboard accessible at `/admin`
+- [ ] All 9 sections functional (dashboard, users, content, forms, social, etc.)
 - [ ] Auth protecting admin routes
-- [ ] AI content assistance working
-- [ ] Analytics connections functional
-- [ ] Performance metrics displaying
 - [ ] Forms/leads management working
-- [ ] Content editor with all features
-- [ ] Social publishing configured
-- [ ] Pre-launch checklist available
+- [ ] Content editor functional
+- [ ] Social publishing configured (if using)
+- [ ] Pre-launch checklist available and accessible

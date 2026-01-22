@@ -1,0 +1,304 @@
+---
+// Navigation structure:
+// - Dashboard: Quick stats and recent activity
+// - People: Unified view of all contacts (donors, volunteers, parents)
+//   - All People: Search/filter across everyone
+//   - Donors: Pipeline view for donor management
+// - Programs: Events and Forms
+// - Communications: Email campaigns
+// - Settings: Admin settings
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: string;
+  children?: NavItem[];
+}
+
+const navItems: NavItem[] = [
+  { label: 'Dashboard', href: '/admin', icon: '📊' },
+  { 
+    label: 'People', 
+    href: '/admin/people', 
+    icon: '👥',
+    children: [
+      { label: 'All People', href: '/admin/people', icon: '📋' },
+      { label: 'Donors', href: '/admin/people/donors', icon: '💙' },
+    ]
+  },
+  { 
+    label: 'Programs', 
+    href: '/admin/events', 
+    icon: '🏀',
+    children: [
+      { label: 'Events', href: '/admin/events', icon: '📅' },
+      { label: 'Forms', href: '/admin/forms', icon: '📋' },
+    ]
+  },
+  { label: 'Email', href: '/admin/email', icon: '📧' },
+  { label: 'Content', href: '/admin/content', icon: '✍️' },
+  { 
+    label: 'Social', 
+    href: '/admin/social/compose-new', 
+    icon: '📱',
+    children: [
+      { label: 'Compose', href: '/admin/social/compose-new', icon: '✏️' },
+      { label: 'Calendar', href: '/admin/social/calendar', icon: '📅' },
+      { label: 'Analytics', href: '/admin/social/analytics', icon: '📊' },
+      { label: 'Drafts', href: '/admin/social/drafts', icon: '📋' },
+      { label: 'Connections', href: '/admin/social/connections', icon: '🔗' },
+    ]
+  },
+  { label: 'Settings', href: '/admin/settings', icon: '⚙️' },
+];
+
+const currentPath = Astro.url.pathname;
+
+// Helper to check if a nav item or its children are active
+function isActive(item: NavItem): boolean {
+  // For Dashboard, only match exactly /admin or /admin/
+  if (item.href === '/admin') {
+    return currentPath === '/admin' || currentPath === '/admin/';
+  }
+  
+  // For other items, check exact match or if path starts with the href
+  if (currentPath === item.href) return true;
+  if (currentPath.startsWith(item.href + '/')) return true;
+  
+  // Check children
+  if (item.children) {
+    return item.children.some(child => 
+      currentPath === child.href || currentPath.startsWith(child.href + '/')
+    );
+  }
+  return false;
+}
+
+function isChildActive(href: string): boolean {
+  return currentPath === href || currentPath.startsWith(href + '/');
+}
+---
+
+<aside class="fixed left-0 top-16 bottom-0 w-64 bg-white border-r border-brand-primary/10 shadow-sm z-40 hidden lg:block overflow-y-auto">
+  <nav class="p-4 space-y-1">
+    {navItems.map((item) => {
+      const itemActive = isActive(item);
+      const hasChildren = item.children && item.children.length > 0;
+      
+      return (
+        <div>
+          <a
+            href={item.href}
+            class={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors ${
+              itemActive && !hasChildren
+                ? 'bg-brand-primary text-white'
+                : itemActive && hasChildren
+                ? 'bg-brand-light text-brand-primary'
+                : 'text-brand-primary hover:bg-brand-light'
+            }`}
+          >
+            <span class="text-xl">{item.icon}</span>
+            <span>{item.label}</span>
+          </a>
+          
+          {/* Render children if they exist and parent is active */}
+          {hasChildren && itemActive && (
+            <div class="ml-4 mt-1 space-y-1 border-l-2 border-brand-primary/10 pl-2">
+              {item.children.map((child) => (
+                <a
+                  href={child.href}
+                  class={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isChildActive(child.href)
+                      ? 'bg-brand-primary text-white'
+                      : 'text-brand-primary/70 hover:bg-brand-light hover:text-brand-primary'
+                  }`}
+                >
+                  <span>{child.icon}</span>
+                  <span>{child.label}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </nav>
+</aside>
+
+<!-- Mobile Menu Button - Hidden, now in header -->
+<!-- Keep for backward compatibility but hide with CSS -->
+
+<!-- Mobile Menu Overlay -->
+<div
+  id="mobile-menu"
+  class="lg:hidden fixed inset-0 bg-black/50 z-40 hidden"
+  onclick="document.getElementById('mobile-menu').classList.add('hidden')"
+>
+  <div
+    class="bg-white w-80 max-w-[85vw] h-full shadow-xl overflow-y-auto safe-area-inset"
+    onclick="event.stopPropagation()"
+  >
+    <div class="p-4 border-b border-brand-primary/10">
+      <div class="flex items-center justify-between">
+        <span class="text-lg font-display font-black text-brand-primary">Admin Menu</span>
+        <button
+          onclick="document.getElementById('mobile-menu').classList.add('hidden')"
+          class="text-brand-primary hover:text-brand-dark min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-brand-light/50 transition-colors"
+          aria-label="Close menu"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <nav class="p-4 space-y-1">
+      {navItems.map((item) => {
+        const itemActive = isActive(item);
+        const hasChildren = item.children && item.children.length > 0;
+        
+        return (
+          <div>
+            <a
+              href={item.href}
+              class={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors min-h-[44px] touch-manipulation ${
+                itemActive && !hasChildren
+                  ? 'bg-brand-primary text-white'
+                  : itemActive && hasChildren
+                  ? 'bg-brand-light text-brand-primary'
+                  : 'text-brand-primary hover:bg-brand-light active:bg-brand-light'
+              }`}
+              onclick={!hasChildren ? "document.getElementById('mobile-menu').classList.add('hidden')" : undefined}
+            >
+              <span class="text-xl">{item.icon}</span>
+              <span>{item.label}</span>
+            </a>
+            
+            {/* Render children for mobile */}
+            {hasChildren && (
+              <div class="ml-4 mt-1 space-y-1 border-l-2 border-brand-primary/10 pl-2">
+                {item.children.map((child) => (
+                <a
+                  href={child.href}
+                  class={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] touch-manipulation ${
+                    isChildActive(child.href)
+                      ? 'bg-brand-primary text-white'
+                      : 'text-brand-primary/70 hover:bg-brand-light hover:text-brand-primary active:bg-brand-light'
+                  }`}
+                  onclick="document.getElementById('mobile-menu').classList.add('hidden')"
+                >
+                    <span>{child.icon}</span>
+                    <span>{child.label}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  </div>
+</div>
+
+<style>
+  /* Prevent body scroll when mobile menu is open */
+  body.menu-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+
+  /* Smooth menu transitions */
+  #mobile-menu {
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  #mobile-menu:not(.hidden) {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  #mobile-menu > div {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+
+  /* Touch optimization */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Safe area support */
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+  }
+</style>
+
+<script>
+  function initMobileMenu() {
+    // Support both header button and legacy FAB button
+    const headerButton = document.getElementById('mobile-menu-button-header');
+    const fabButton = document.getElementById('mobile-menu-button');
+    const menu = document.getElementById('mobile-menu');
+    const body = document.body;
+    
+    const toggleMenu = (e: Event) => {
+      e.stopPropagation();
+      const isHidden = menu?.classList.contains('hidden');
+      
+      if (isHidden) {
+        menu?.classList.remove('hidden');
+        body.classList.add('menu-open');
+      } else {
+        menu?.classList.add('hidden');
+        body.classList.remove('menu-open');
+      }
+    };
+    
+    if (menu) {
+      // Header button (primary)
+      if (headerButton) {
+        headerButton.addEventListener('click', toggleMenu);
+      }
+      
+      // FAB button (legacy, kept for compatibility)
+      if (fabButton) {
+        fabButton.addEventListener('click', toggleMenu);
+      }
+
+      // Close menu when clicking overlay
+      menu.addEventListener('click', (e) => {
+        if (e.target === menu) {
+          menu.classList.add('hidden');
+          body.classList.remove('menu-open');
+        }
+      });
+
+      // Close menu on escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
+          menu.classList.add('hidden');
+          body.classList.remove('menu-open');
+        }
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileMenu);
+  } else {
+    initMobileMenu();
+  }
+</script>
