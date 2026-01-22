@@ -670,26 +670,34 @@ Before Content phase can complete:
 - [ ] Auth protecting admin
 - [ ] All sections implemented
 
-### Step 8.1A: OAuth Authentication Setup (If Required)
+### Step 8.1A: Authentication Setup (If Required)
 
-**Skill:** Supabase OAuth  
-**Owner:** Builder Agent (implements), User (configures Google Cloud)
+**Skill:** Clerk Authentication  
+**Owner:** Builder Agent (implements), User (configures Clerk Dashboard)
 
 **When:** Required if admin dashboard or user portals need authentication
 
-- [ ] Google Cloud Console OAuth consent screen configured
-- [ ] OAuth 2.0 credentials created with correct redirect URIs
-- [ ] Supabase Google provider enabled with Client ID and Secret
-- [ ] Supabase redirect URLs configured (localhost + production)
+- [ ] Dependencies installed (`@clerk/astro`, `@clerk/backend`, `svix`)
+- [ ] Clerk Dashboard application created
 - [ ] Environment variables set locally (`.env.local`)
+  - `PUBLIC_CLERK_PUBLISHABLE_KEY`
+  - `CLERK_SECRET_KEY`
+  - `CLERK_WEBHOOK_SECRET`
 - [ ] Environment variables set in production (Vercel/etc.)
-- [ ] Sign-in page functional
-- [ ] Callback handler working (`/auth/callback`)
-- [ ] User can successfully sign in with Google
+- [ ] Astro config updated with Clerk integration
+- [ ] Middleware created and protecting routes
+- [ ] Auth pages functional (sign-in, sign-up, sign-out, redirect)
+- [ ] Webhook handler created (`/api/clerk-webhook`)
+- [ ] Clerk Dashboard webhook configured
+- [ ] CSP headers added to `vercel.json`
+- [ ] Database tables created (`admin_users`)
+- [ ] Permanent super admin set
+- [ ] Role-based access control working
+- [ ] User can successfully sign in
 - [ ] Session persists across page reloads
 - [ ] Protected routes accessible after authentication
 
-**Reference:** See `skills/supabase-oauth/SKILL.md` for complete step-by-step instructions
+**Reference:** See `skills/clerk-authentication/SKILL.md` for complete step-by-step instructions
 
 ### Step 8.2: Bing Webmaster Tools & IndexNow Setup (REQUIRED for AI/LLM Visibility)
 

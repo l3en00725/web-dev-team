@@ -133,7 +133,7 @@ See `/agents/` for full agent definitions.
 | **Admin Dashboard** | Full backend for site management |
 | **CMS/Content Connector** | Structured content system |
 | **Social Publishing** | LinkedIn and Medium distribution |
-| **Supabase OAuth** | Google OAuth authentication setup |
+| **Clerk Authentication** | Clerk authentication with role-based access control |
 | **Redirects** | URL mapping for rebuilds |
 
 See `/skills/` for full skill specifications.

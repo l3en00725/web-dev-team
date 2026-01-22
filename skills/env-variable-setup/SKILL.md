@@ -45,6 +45,9 @@ After Repo Graduation Skill completes successfully.
 
 | Variable | When Required | Source |
 |----------|---------------|--------|
+| `PUBLIC_CLERK_PUBLISHABLE_KEY` | Authentication (admin/portal) | Clerk Dashboard |
+| `CLERK_SECRET_KEY` | Authentication (admin/portal) | Clerk Dashboard |
+| `CLERK_WEBHOOK_SECRET` | Authentication webhooks | Clerk Dashboard |
 | `PAGESPEED_API_KEY` | Performance testing | Google Cloud Console |
 | `PEXELS_API_KEY` | Stock imagery | Pexels API |
 | `UNSPLASH_API_KEY` | Stock imagery | Unsplash API |
@@ -229,6 +232,12 @@ Ensure `.gitignore` includes:
 2. APIs & Services → Credentials
 3. Create API key
 4. Enable required APIs
+
+### Clerk (Authentication)
+1. Go to [dashboard.clerk.com](https://dashboard.clerk.com)
+2. Create application or select existing
+3. API Keys → Copy Publishable Key and Secret Key
+4. Webhooks → Create webhook endpoint → Copy signing secret
 
 ---
 
